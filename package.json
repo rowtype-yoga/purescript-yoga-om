@@ -1,0 +1,20 @@
+{
+  "name": "purescript-yoga-appm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rowtype-yoga/purescript-yoga-appm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-appm/issues"
+  },
+  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-appm#readme"
+}
