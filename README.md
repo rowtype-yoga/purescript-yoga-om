@@ -195,3 +195,8 @@ passing `RWSET` without `State` or `Writer` with errors specialised to
 polymorphic `Variant`s.
 
 
+# Special Thanks
+
+We would like to thank all the PureScript contributors, especially the ones whose libraries we depend on.
+
+Special thanks to @reactormonk who has a very similar library ([rave](https://github.com/reactormonk/purescript-rave)) which has the trick to inject variants as single field records instead of the cumbersome `(Proxy :: Proxy "key") value` syntax.
