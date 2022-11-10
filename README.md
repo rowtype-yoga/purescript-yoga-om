@@ -95,8 +95,7 @@ Let's bring it all back home. Eventually you want to actually run an `Om`.
 Most probably at the start of your application, in a `main :: Effect Unit` function for
 example.
 
-That's the right time to supply the dependencies to your `Om`,
-And to handle any remaining possible errors:
+That's the right time to supply the dependencies to your `Om` and to handle any remaining possible errors:
 
 ```purescript
 module Main where
