@@ -2,6 +2,8 @@
 
 A powerful general purpose type for writing applications.
 
+For an extensive overview checkout the [tests](./test/Test/Main.purs).
+
 ## What can it do?
 
 An `Om` consists of three parts. 
