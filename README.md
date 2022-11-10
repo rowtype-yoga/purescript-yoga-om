@@ -104,27 +104,27 @@ import Prelude
 import Node.Process (lookupEnv)
 import Effect.Class.Console as Console
 import Effect (Effect)
+import Data.Maybe (Maybe)
 import Yoga.Om as Om
 import Yoga.Om (Om)
 
-
 main :: Effect Unit
-main = do  
-  name <- lookupEnv "NAME"
-  greet 
-    # Om.launchOm_ 
-      { name }
-      { exception: 
-          \e -> Console.error ("Unexpected exception: " <> show e)   
-      , nameNotFound:
-          \_ -> Console.error "Make sure the $NAME env variable is set"
-      }
+main = do
+  envName <- lookupEnv "NAME"
+  greet
+    # Om.launchOm_
+        { envName }
+        { exception:
+            \e -> Console.error ("Unexpected exception: " <> show e)
+        , nameNotFound:
+            \_ -> Console.error "Make sure the $NAME env variable is set"
+        }
 
-greet :: Om { envName :: Maybe String } ( nameNotFound :: Unit ) Unit
+greet :: Om { envName :: Maybe String } (nameNotFound :: Unit) Unit
 greet = do
-  { envName } <- ask
+  { envName } <- Om.ask
   name <- envName # Om.note { nameNotFound: unit }
-  Console.log $ "Welcome " <> name 
+  Console.log $ "Welcome " <> name
 ```
 
 ### Parallel computations
