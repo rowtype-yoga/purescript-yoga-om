@@ -131,7 +131,7 @@ greet = do
 
 You can run different `Om`s in parallel.
 
-Either the fastest one wins:
+Either the fastest one that does not error out wins:
 ```purescript
 Om.race [ Om.delay (1.0 # Seconds) *> pure "slow" , pure "fast" ]
 ```
