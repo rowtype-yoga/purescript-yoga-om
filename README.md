@@ -11,6 +11,10 @@ For an extensive overview checkout the [tests](./test/Test/Main.purs).
 spago install yoga-om
 ```
 
+## Quickstart
+
+Check out the [minimal example](./#running-an-om)!
+
 ## What can it do?
 
 An `Om` consists of three parts. 
