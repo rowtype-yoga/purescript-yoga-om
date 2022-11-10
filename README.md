@@ -13,7 +13,7 @@ spago install yoga-om
 
 ## Quickstart
 
-Check out the [minimal example](./#running-an-om)!
+Check out the [minimal example](#running-an-om)!
 
 ## What can it do?
 
