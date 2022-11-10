@@ -41,7 +41,7 @@ This is an `Om _ ( myError :: String ) _`
 ### Handling errors
 To catch one or multiple errors use `handleErrors`
 
-```
+```purescript
 myOmHandled = handleErrors { myError: \text -> Console.warn text } myOmThatThrows
 ```
 
@@ -55,7 +55,7 @@ the type `Om _ () _`.
 A powerful feature of `Om` is that you can easily combine different `Om`
 computations that can throw different errors.
 
-```
+```purescript
 om1 :: forall otherErrors. Om _ ( ioError :: Int | otherErrors ) _
 om1 = throw { ioError: -8 }
 
