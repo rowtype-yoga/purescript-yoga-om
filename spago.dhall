@@ -1,4 +1,6 @@
-{ name = "yoga-appm"
+{ name = "yoga-om"
+, license = "MIT"
+, repository = "https://github.com/rowtype-yoga/purescript-yoga-om"
 , dependencies =
   [ "aff"
   , "avar"
