@@ -8,6 +8,7 @@ module Yoga.Om
   , expandErr
   , fromAff
   , handleErrors
+  , launchOm
   , launchOm_
   , note
   , noteM
@@ -35,10 +36,9 @@ import Control.Monad.Except.Trans (lift)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.Reader.Trans (ask, asks)
 import Control.Monad.Rec.Class (class MonadRec)
-import Control.Parallel (class Parallel, parOneOf, parSequence, parTraverse, parallel, sequential)
+import Control.Parallel (class Parallel, parOneOf, parSequence, parallel, sequential)
 import Control.Plus (empty)
 import Data.Either (Either(..), either)
-import Data.Functor.Variant as V
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Time.Duration (class Duration, fromDuration)
@@ -46,18 +46,16 @@ import Data.Tuple.Nested ((/\))
 import Data.Variant (class VariantMatchCases, Variant, case_, match, on, onMatch)
 import Effect (Effect)
 import Effect.AVar (AVar)
-import Effect.Aff (Aff, ParAff, forkAff, launchAff_, supervise)
+import Effect.Aff (Aff, Fiber, ParAff, forkAff, launchAff, supervise)
 import Effect.Aff as Aff
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception (Error)
 import Prim.Row (class Nub, class Union)
-import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
 import Record (disjointUnion)
 import Record.Studio (class Keys, shrink)
-import Type.Prelude (Proxy(..))
 import Uncurried.RWSET (RWSET, hoistRWSET, runRWSET, rwseT, withRWSET)
 import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Om.Error (Exception, OneOfTheseErrors, exception, getParallelError, newParallelError, parallelErrorToError, toParallelError, class SingletonVariantRecord, singletonRecordToVariant)
@@ -129,8 +127,14 @@ delay = liftAff <<< Aff.delay <<< fromDuration
 -- |     let maybeCached = Object.lookup key cache :: Maybe a
 -- |     cached :: a <- maybeCached # Om.note (unexpectedCacheMiss key)
 -- | ```
-note ∷ ∀ err m a. MonadThrow err m ⇒ err → Maybe a → m a
-note err = maybe (throwError $ err) pure
+note
+  ∷ ∀ m err errors a
+  . SingletonVariantRecord err errors
+  ⇒ MonadThrow (OneOfTheseErrors errors) m
+  ⇒ Record err
+  → Maybe a
+  → m a
+note err = maybe (throw err) pure
 
 noteM ∷ ∀ err m a. MonadThrow err m ⇒ m err → Maybe a → m a
 noteM err = maybe (throwError =<< err) pure
@@ -166,9 +170,9 @@ handleErrors'
   . (Variant (Exception err1) → Om ctx err2 a)
   → Om ctx err1 a
   → Om ctx err2 a
-handleErrors' handle (Om appM) = do
+handleErrors' handle (Om om) = do
   ctx ← ask
-  result ← runRWSET ctx unit appM <#> (\(_ /\ v /\ _) → v) # fromAff
+  result ← runRWSET ctx unit om <#> (\(_ /\ v /\ _) → v) # fromAff
   case result of
     Left err → handle err
     Right r → pure r
@@ -184,9 +188,9 @@ handleErrors
   ⇒ Record handlers
   → Om ctx errIn a
   → Om ctx errOut a
-handleErrors cases (Om appM) = do
+handleErrors cases (Om om) = do
   ctx ← ask
-  err ← liftAff ((\(_ /\ v /\ _) → v) <$> (runRWSET ctx unit appM))
+  err ← liftAff ((\(_ /\ v /\ _) → v) <$> (runRWSET ctx unit om))
   err # either (onMatch cases throwError) pure
 
 -- | When you have a function that can throw a subset of the errors of the ones
@@ -213,7 +217,7 @@ expandCtx
   ⇒ Keys lt
   ⇒ Om { | lt } err ~>
       Om { | gt } err
-expandCtx (Om appM) = Om (withRWSET (\r s → shrink r /\ s) appM)
+expandCtx (Om om) = Om (withRWSET (\r s → shrink r /\ s) om)
 
 expand
   :: forall eSmall e_ eLarge a cSmall c_ cLarge
@@ -225,6 +229,19 @@ expand
 expand = expandErr <<< expandCtx
 
 -- | Launches an error free Om
+launchOm
+  ∷ ∀ ctx r rl err_ err a
+   . RowToList (exception ∷ Error → Aff a | r) rl
+  ⇒ VariantMatchCases rl err_ (Aff a)
+  ⇒ Union err_ () (Exception err)
+  ⇒ ctx
+  → { exception ∷ Error → Aff a | r }
+  -> Om ctx err a
+  -> Effect (Fiber a)
+launchOm ctx handlers om =
+  launchAff (runOm ctx handlers om)
+
+-- | Launches an error free Om
 launchOm_
   ∷ ∀ ctx r rl err_ err
    . RowToList (exception ∷ Error → Aff Unit | r) rl
@@ -234,8 +251,8 @@ launchOm_
   → { exception ∷ Error → Aff Unit | r }
   -> Om ctx err Unit
   -> Effect Unit
-launchOm_ ctx handlers appM =
-  launchAff_ (runOm ctx handlers appM)
+launchOm_ ctx handlers om =
+  void (launchOm ctx handlers om)
 
 -- | Invoke this function in the end after handling all possible errors, e.g.
 -- | ```purescript
@@ -253,10 +270,10 @@ launchOm_ ctx handlers appM =
 -- | ```
 runReader
   ∷ ∀ ctx err a. ctx → Om ctx err a → Aff (Either (Variant (Exception err)) a)
-runReader ctx appM =
+runReader ctx om =
   runOm ctx { exception: \exception -> pure (Left (error { exception })) }
     $ handleErrors' (pure <<< Left)
-    $ (Right <$> appM)
+    $ (Right <$> om)
 
 -- | Useful when constructing a *parameterless* callback of type `Aff` or
 -- | `Effect` within the context of an Om computation
@@ -268,7 +285,7 @@ unliftAff
   ∷ ∀ ctx err otherErrors a
   . Om ctx err a
   → Om ctx otherErrors (Aff (Either (Variant (Exception err)) a))
-unliftAff appM = ado ctx ← ask in runReader ctx appM
+unliftAff om = ado ctx ← ask in runReader ctx om
 
 -- | Useful when constructing a callback of type `Aff` or `Effect` within the
 -- | context of an Om computation
@@ -280,10 +297,10 @@ unliftAffFn
   ∷ ∀ ctx arg errors a
   . (arg → Om ctx () a)
   → Om ctx errors (arg → Aff a)
-unliftAffFn appM = do
+unliftAffFn om = do
   ctx ← ask
   pure \arg → do
-    runReader ctx (appM arg) >>= either
+    runReader ctx (om arg) >>= either
       (case_ # on exception (\e → throwError e))
       pure
 
@@ -321,8 +338,8 @@ widenCtx
   ⇒ { | additionalCtx }
   → Om { | widerCtx } err
       ~> Om { | ctx } err
-widenCtx toUnion (Om (appM)) =
-  Om (withRWSET (\r _ → disjointUnion toUnion r /\ unit) appM)
+widenCtx toUnion (Om (om)) =
+  Om (withRWSET (\r _ → disjointUnion toUnion r /\ unit) om)
 
 -- Parallel computations
 newtype ParOm ctx err a = ParOm

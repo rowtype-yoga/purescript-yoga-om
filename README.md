@@ -5,6 +5,12 @@ A powerful general purpose type for writing applications.
 
 For an extensive overview checkout the [tests](./test/Test/Main.purs).
 
+## Installation
+
+```bash
+spago install yoga-om
+```
+
 ## What can it do?
 
 An `Om` consists of three parts. 
@@ -73,6 +79,50 @@ This means that you can and should only tag a function with the errors it can ac
 throw and not the complete set of errors that might happen anywhere in your program.
 
 The compiler helps you out with this.
+
+### Working with `Aff` and `Effect`
+
+In order to transform any `Aff a` into an `Om _ _ a` you may use `liftAff`, or `fromAff`.
+To do the same with `Effect` you may use `liftEffect`.
+
+### Running an `Om`
+
+Let's bring it all back home. Eventually you want to actually run an `Om`.
+Most probably at the start of your application, in a `main :: Effect Unit` function for
+example.
+
+That's the right time to supply the dependencies to your `Om`,
+And to handle any remaining possible errors:
+
+```purescript
+module Main where
+
+import Prelude
+import Node.Process (lookupEnv)
+import Effect.Class.Console as Console
+import Effect (Effect)
+import Yoga.Om as Om
+import Yoga.Om (Om)
+
+
+main :: Effect Unit
+main = do  
+  name <- lookupEnv "NAME"
+  greet 
+    # Om.launchOm_ 
+      { name }
+      { exception: 
+          \e -> Console.error ("Unexpected exception: " <> show e)   
+      , nameNotFound:
+          \_ -> Console.error "Make sure the $NAME env variable is set"
+      }
+
+greet :: Om { envName :: Maybe String } ( nameNotFound :: Unit ) Unit
+greet = do
+  { envName } <- ask
+  name <- envName # Om.note { nameNotFound: unit }
+  Console.log $ "Welcome " <> name 
+```
 
 ### Parallel computations
 

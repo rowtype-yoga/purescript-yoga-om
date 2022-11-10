@@ -1,7 +1,6 @@
 { name = "yoga-appm"
 , dependencies =
   [ "aff"
-  , "arrays"
   , "avar"
   , "console"
   , "control"
@@ -19,12 +18,11 @@
   , "tailrec"
   , "transformers"
   , "tuples"
-  , "type-equality"
   , "typelevel-prelude"
   , "uncurried-transformers"
   , "unsafe-coerce"
   , "variant"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs" ]
 }

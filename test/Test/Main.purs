@@ -4,15 +4,14 @@ import Prelude
 
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Error.Class as MonadThrow
-import Control.Monad.Reader.Class (ask, asks)
+import Control.Monad.Reader.Class (asks)
 import Data.Array (intercalate)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (power)
-import Data.Time.Duration (Seconds(..))
+import Data.Time.Duration (Seconds(..), Milliseconds(..))
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), launchAff_)
-import Effect.Aff as Aff
+import Effect.Aff (Aff, launchAff_)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console as Console
@@ -36,13 +35,13 @@ spec = do
       it "Runs safely" do
         let ctx = {}
         let errorHandlers = { exception: \_ -> pure false }
-        let appM = pure true
-        result <- appM # runOm ctx errorHandlers
+        let om = pure true
+        result <- om # runOm ctx errorHandlers
         result `shouldEqual` true
 
       it "Launches safely" do
-        let appM = Console.log "Hello from Om"
-        let launch = appM # launchOm_ {} { exception: \_ -> pure unit }
+        let om = Console.log "Hello from Om"
+        let launch = om # launchOm_ {} { exception: \_ -> pure unit }
         liftEffect launch
 
     -- 
@@ -91,29 +90,29 @@ spec = do
           result `shouldEqual` "bad error"
 
         it "supports widening the errors of non-extensible Oms" do
-          let appM1 = pure "good" :: Om {} (goodError :: Int) String
-          let appM2 = Om.throw { badError: "bad error" } :: Om {} (badError :: String) String
+          let om1 = pure "good" :: Om {} (goodError :: Int) String
+          let om2 = Om.throw { badError: "bad error" } :: Om {} (badError :: String) String
           result <- Om.runOm {} { exception: \_ -> pure "exception", goodError: pure <<< show, badError: pure } do
-            result1 <- Om.expandErr appM1
-            result2 <- Om.expandErr appM2
+            result1 <- Om.expandErr om1
+            result2 <- Om.expandErr om2
             pure (result1 <> result2)
           result `shouldEqual` "bad error"
 
         it "supports widening the contexts of non-extensible Oms" do
-          let appM1 = (asks _.x) :: Om { x :: String } () String
-          let appM2 = (asks _.y) :: Om { y :: String } () String
+          let om1 = (asks _.x) :: Om { x :: String } () String
+          let om2 = (asks _.y) :: Om { y :: String } () String
           result <- Om.runOm { x: "good", y: "food" } { exception: \_ -> pure "exception" } do
-            result1 <- Om.expandCtx appM1
-            result2 <- Om.expandCtx appM2
+            result1 <- Om.expandCtx om1
+            result2 <- Om.expandCtx om2
             pure (result1 <> " " <> result2)
           result `shouldEqual` "good food"
 
         it "supports widening the contexts and errors and of non-extensible Oms" do
-          let appM1 = (asks _.x) :: Om { x :: String } (bad :: String) String
-          let appM2 = (asks _.y) :: Om { y :: String } (realBad :: String) String
+          let om1 = (asks _.x) :: Om { x :: String } (bad :: String) String
+          let om2 = (asks _.y) :: Om { y :: String } (realBad :: String) String
           result <- Om.runOm { x: "good", y: "food" } { exception: \_ -> pure "exception", bad: pure, realBad: pure } do
-            result1 <- Om.expand appM1
-            result2 <- Om.expand appM2
+            result1 <- Om.expand om1
+            result2 <- Om.expand om2
             pure (result1 <> " " <> result2)
           result `shouldEqual` "good food"
 
@@ -148,14 +147,14 @@ spec = do
         let
           -- This Om can only has the `badError` error
           -- Because we eliminate the `cacheError` from above
-          appM :: Om {} (badError :: String) String
-          appM = do
-            _ <- getFromCache # Om.handleError
+          om :: Om {} (badError :: String) String
+          om = do
+            _ <- getFromCache # Om.handleErrors
               { cacheError: \_ -> pure "Found in cache"
               , benignError: \_ -> pure "Found in cache"
               }
             pure "Nothing to see here"
-        result <- runExampleOm appM
+        result <- runExampleOm om
         result `shouldEqual` "Nothing to see here"
 
       it "Allows transforming a subset of errors" do
@@ -168,14 +167,14 @@ spec = do
         let
           -- This Om can only has the `badError` error
           -- Because we eliminate the `cacheError` from above
-          appM :: Om {} (badError :: String) String
-          appM = do
-            _ <- getFromCache # Om.handleError
+          om :: Om {} (badError :: String) String
+          om = do
+            _ <- getFromCache # Om.handleErrors
               { cacheError: \_ -> Om.throw { badError: "bad error" }
               , fatal: \_ -> pure "This is fine"
               }
             pure "Nothing to see here"
-        result <- runExampleOm appM
+        result <- runExampleOm om
         result `shouldEqual` "bad error"
 
     -- 
@@ -183,7 +182,7 @@ spec = do
 
       it "Allows lifting `Maybe` values" do
         result <- runExampleOm do
-          Nothing # Om.note (Om.error { badError: "bad error" })
+          Nothing # Om.note { badError: "bad error" }
         "bad error" `shouldEqual` result
 
       it "Allows lifting `Left` values" do
