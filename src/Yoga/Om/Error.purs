@@ -12,7 +12,6 @@ import Effect.Class.Console as Console
 import Effect.Exception (Error)
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
-import Prim.TypeError (class Fail, class Warn, Doc, Text)
 import Record (get)
 import Type.Proxy (Proxy(..))
 import Type.Row as Row
