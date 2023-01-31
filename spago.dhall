@@ -3,6 +3,7 @@
 , repository = "https://github.com/rowtype-yoga/purescript-yoga-om"
 , dependencies =
   [ "aff"
+  , "arrays"
   , "avar"
   , "console"
   , "control"

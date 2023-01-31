@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20221108/packages.dhall
-        sha256:c7a61f5937f09a2fa5e06c1857aea835645f78856469fdb99ae036a5ba768e41
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.7-20230130/packages.dhall
+        sha256:63189ab110ac8add19149c5c42b0c044b97f96d7cbe0505c140974061a786141
 
 in  upstream
   with record-studio =

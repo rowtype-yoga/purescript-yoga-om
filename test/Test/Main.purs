@@ -22,9 +22,13 @@ import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Yoga.Om (Om, launchOm_, runOm)
 import Yoga.Om as Om
+import Test.Spec.Reporter.TeamCity (teamcityReporter)
+import Effect.Aff (try)
 
 main :: Effect Unit
-main = launchAff_ $ runSpec [ consoleReporter ] spec
+main = launchAff_ $ runSpec [ consoleReporter, teamcityReporter ] spec
+
+someInt = 4
 
 spec :: Spec Unit
 spec = do
@@ -59,12 +63,13 @@ spec = do
           (liftEffect throwingEffect $> "Never reached")
         resultEffect `shouldEqual` "Caught"
 
-    --
+--    --
     describe "Context (Reader) composition" do
 
       it "Allows combining `Om`s with different contexts" do
         let ctx = { text: "!", howOften: 3 }
         let errorHandlers = { exception: \_ -> pure "Improbable" }
+
         let askText = Om.ask <#> _.text
         let askHowOften = Om.asks _.howOften
 
@@ -74,7 +79,7 @@ spec = do
           pure (power text times)
         result `shouldEqual` "!!!"
 
-    --
+--    --
     describe "Helpers" do
 
       describe "For throwing errors" do
@@ -92,12 +97,16 @@ spec = do
         it "supports widening the errors of non-extensible Oms" do
           let om1 = pure "good" :: Om {} (goodError :: Int) String
           let om2 = Om.throw { badError: "bad error" } :: Om {} (badError :: String) String
-          result <- Om.runOm {} { exception: \_ -> pure "exception", goodError: pure <<< show, badError: pure } do
+          result <- Om.runOm {}
+            { exception: \_ -> pure "exception"
+            , goodError: \x -> pure $ show x
+            , badError: \x -> pure x }
+           do
             result1 <- Om.expandErr om1
             result2 <- Om.expandErr om2
             pure (result1 <> result2)
           result `shouldEqual` "bad error"
-
+--
         it "supports widening the contexts of non-extensible Oms" do
           let om1 = (asks _.x) :: Om { x :: String } () String
           let om2 = (asks _.y) :: Om { y :: String } () String
@@ -106,17 +115,20 @@ spec = do
             result2 <- Om.expandCtx om2
             pure (result1 <> " " <> result2)
           result `shouldEqual` "good food"
-
+--
         it "supports widening the contexts and errors and of non-extensible Oms" do
           let om1 = (asks _.x) :: Om { x :: String } (bad :: String) String
           let om2 = (asks _.y) :: Om { y :: String } (realBad :: String) String
-          result <- Om.runOm { x: "good", y: "food" } { exception: \_ -> pure "exception", bad: pure, realBad: pure } do
+          result <- Om.runOm { x: "good", y: "food" }
+            { exception: \_ -> pure "exception"
+            , bad: \x -> pure x
+            , realBad: \x -> pure x } do
             result1 <- Om.expand om1
             result2 <- Om.expand om2
             pure (result1 <> " " <> result2)
           result `shouldEqual` "good food"
-
-    -- 
+--
+--    --
     describe "Error composition" do
 
       it "Allows combining `Om`s with different errors" do
@@ -126,7 +138,7 @@ spec = do
           readFromDB = Om.throw { dbError: "DB Dead" }
           errorHandlers =
             { exception: \_ -> pure "exception"
-            , dbError: pure
+            , dbError: \x -> pure x
             , ioError: \err -> pure (err.reason <> " " <> show err.code)
             }
 
@@ -135,7 +147,7 @@ spec = do
           _ <- readFromDB
           pure "Good luck getting here"
         result `shouldEqual` "Disk Exploded -3"
-
+--
       it "Allows handling a subset of errors" do
         let
           getFromCache = do
@@ -156,7 +168,7 @@ spec = do
             pure "Nothing to see here"
         result <- runExampleOm om
         result `shouldEqual` "Nothing to see here"
-
+--
       it "Allows transforming a subset of errors" do
         let
           getFromCache = do
@@ -177,7 +189,7 @@ spec = do
         result <- runExampleOm om
         result `shouldEqual` "bad error"
 
-    -- 
+--    --
     describe "Helper functions" do
 
       it "Allows lifting `Maybe` values" do
@@ -203,16 +215,16 @@ spec = do
             _ <- Om.throw { badError }
             pure $ Om.error { badError: "I won't be reached" }
         result `shouldEqual` "bad error"
-
-    -- 
+--
+--    --
     describe "Parallel computations" do
 
       it "Allows racing multiple computations in parallel" do
         result <- runExampleOm do
-          Om.race
-            [ Om.delay (1.0 # Seconds) *> pure "slow"
-            , pure "fast"
-            ]
+           Om.race
+             [ Om.delay (one # Seconds) *> pure "slow"
+             , pure "fast"
+             ]
         result `shouldEqual` "fast"
 
       it "Prioritises successful computations in parallel" do

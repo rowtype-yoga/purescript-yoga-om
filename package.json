@@ -16,5 +16,9 @@
   "bugs": {
     "url": "https://github.com/rowtype-yoga/purescript-yoga-appm/issues"
   },
-  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-appm#readme"
+  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-appm#readme",
+  "dependencies": {
+    "purescript": "^0.15.7",
+    "spago": "^0.20.9"
+  }
 }
