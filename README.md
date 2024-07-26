@@ -18,7 +18,7 @@ Check out the [minimal example](#running-an-om)!
 ## What can it do?
 
 An `Om` consists of three parts. 
-A *context*, potential *errors*, and the *value* of the computation.
+A *context*, potential *errors*, and the *value* of a concurrent computation.
 
 Conventionally in code, we abbreviate this as `Om ctx errs a`.
 
