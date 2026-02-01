@@ -683,17 +683,20 @@ traverseMStrom_ = traverseStrom_
 
 -- | Append two streams
 -- | Now properly handles multi-chunk streams with new Step protocol
+-- | Note: s2 is appended TO s1 (s1 comes first, then s2)
+-- | This matches pipeline semantics: stream # appendStrom other means stream followed by other
 appendStrom :: forall ctx err a. Strom ctx err a -> Strom ctx err a -> Strom ctx err a
-appendStrom s1 s2 = mkStrom do
-  step <- runStrom s1
+appendStrom toAppend baseStream = mkStrom do
+  step <- runStrom baseStream
   case step of
-    Done Nothing -> runStrom s2
-    Done (Just chunk) -> pure $ Loop $ Tuple (Just chunk) s2 -- Emit chunk and continue with s2
-    Loop (Tuple maybeChunk next) -> pure $ Loop $ Tuple maybeChunk (appendStrom next s2)
+    Done Nothing -> runStrom toAppend
+    Done (Just chunk) -> pure $ Loop $ Tuple (Just chunk) toAppend -- Emit chunk and continue with toAppend
+    Loop (Tuple maybeChunk next) -> pure $ Loop $ Tuple maybeChunk (appendStrom toAppend next)
 
 -- | Concatenate an array of streams
+-- | Uses foldr with flip to match appendStrom's pipeline-friendly parameter order
 concatStrom :: forall ctx err a. Array (Strom ctx err a) -> Strom ctx err a
-concatStrom streams = Array.foldl appendStrom empty streams
+concatStrom streams = Array.foldr (flip appendStrom) empty streams
 
 -- | Zip two streams together
 zipStrom :: forall ctx err a b. Strom ctx err a -> Strom ctx err b -> Strom ctx err (Tuple a b)
