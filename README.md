@@ -2,33 +2,77 @@
 
 A powerful general purpose type for writing applications with dependency injection and checked exceptions.
 
-This workspace contains three packages:
+> **⚠️ Important:** This project uses **Spago Next (v0.93.45+)** with `spago.yaml`. It will not work with old Spago v0.21.x. See [SPAGO_NEXT.md](./SPAGO_NEXT.md) or [MIGRATION.md](./MIGRATION.md).
+
+This workspace contains four packages:
 
 - **[yoga-om-core](./packages/yoga-om-core)** - Core Om types and operations (platform-agnostic)
 - **[yoga-om-node](./packages/yoga-om-node)** - Node.js-specific extensions
-- **[yoga-om-streams](./packages/yoga-om-streams)** - Bolson-based streaming/FRP integration
+- **[yoga-om-rom](./packages/yoga-om-rom)** - Reactive Om: Bolson-based FRP integration (push-based events)
+- **[yoga-om-strom](./packages/yoga-om-strom)** - Stream Om: Pull-based streaming library for data processing
 
-For an extensive overview checkout the [tests](./test/Test/Main.purs).
+For an extensive overview, check out the tests in each package:
+- [yoga-om-core tests](./packages/yoga-om-core/test/)
+- [yoga-om-node tests](./packages/yoga-om-node/test/)
+- [yoga-om-rom tests](./packages/yoga-om-rom/test/)
+- [yoga-om-strom tests](./packages/yoga-om-strom/test/)
+
+## Prerequisites
+
+This project requires:
+- **Bun** - Fast JavaScript runtime and package manager
+- **Spago Next (v0.93.45+)** - For workspace and yaml configuration support
+- **PureScript (v0.15.15+)** - The PureScript compiler
 
 ## Installation
 
-This project recommends [Bun](https://bun.sh) as the package manager for faster installs and better performance (~3x faster than npm).
+### 1. Install Bun
 
 ```bash
-# Install Bun (recommended)
+# Install Bun (fast JavaScript runtime & package manager)
 curl -fsSL https://bun.sh/install | bash
 
+# Verify installation
+bun --version  # Should show 1.0+
+```
+
+### 2. Install Spago Next
+
+```bash
+# Install Spago Next globally using Bun
+bun install -g spago@next
+
+# Verify installation
+spago version  # Should show 0.93.45+
+```
+
+> **Important:** This project uses `spago.yaml` (Spago Next) and **will not work** with old Spago v0.21.x. See [MIGRATION.md](./MIGRATION.md) if migrating from old Spago.
+
+### 3. Install Dependencies
+
+```bash
 # Install workspace dependencies
 bun install
 
+# Install PureScript dependencies
+spago install
+```
+
+### 4. Build and Test
+
+```bash
 # Build all packages
 bun run build
 
-# Run tests
-bun run test
-```
+# Run all tests
+bun test
 
-> **Note:** While npm/yarn will work, Bun is recommended for the best developer experience. The `packageManager` field in `package.json` indicates the preferred tool.
+# Or test individual packages
+bun test:core    # Test yoga-om-core
+bun test:node    # Test yoga-om-node
+bun test:rom     # Test yoga-om-rom
+bun test:strom   # Test yoga-om-strom
+```
 
 ### Adding Packages to Your Project
 
@@ -44,10 +88,16 @@ spago install yoga-om-core
 spago install yoga-om-node
 ```
 
-### Streaming/FRP Integration (Optional)
+### Reactive FRP Integration (Optional)
 
 ```bash
-spago install yoga-om-streams
+spago install yoga-om-rom
+```
+
+### Pull-Based Streaming (Optional)
+
+```bash
+spago install yoga-om-strom
 ```
 
 ## Quickstart
@@ -60,7 +110,29 @@ Check out the [minimal example](#running-an-om)!
 
 - **yoga-om-node**: Add this if you're building a Node.js application and want convenient wrappers for file system operations, environment variables, etc.
 
-- **yoga-om-streams**: Add this if you're integrating with Bolson's FRP system for event-driven or reactive programming.
+- **yoga-om-rom**: Add this if you're integrating with Bolson's FRP system for push-based reactive/event-driven programming (UI, user interactions).
+
+- **yoga-om-strom**: Add this for pull-based data streaming with features like batching, parallel processing, and resource-safe stream composition (APIs, file I/O, data pipelines).
+
+## Documentation
+
+### 📚 Setup & Configuration
+- **[BUN_SETUP.md](./BUN_SETUP.md)** - Bun usage guide
+- **[BUN_ONLY.md](./BUN_ONLY.md)** - Why Bun-only (no nvm/npm)
+- **[SPAGO_NEXT.md](./SPAGO_NEXT.md)** - Spago Next guide
+- **[YAML_ONLY.md](./YAML_ONLY.md)** - YAML configuration (no Dhall)
+- **[MIGRATION.md](./MIGRATION.md)** - Migrating from old Spago
+
+### 🏗️ Project Structure
+- **[STRUCTURE.md](./STRUCTURE.md)** - Workspace organisation
+- **[TESTING.md](./TESTING.md)** - Testing guide
+- **[COLOCATION_SUMMARY.md](./COLOCATION_SUMMARY.md)** - Test colocation
+
+### 📦 Package Documentation
+- [yoga-om-core README](./packages/yoga-om-core/README.md)
+- [yoga-om-node README](./packages/yoga-om-node/README.md)
+- [yoga-om-rom README](./packages/yoga-om-rom/README.md)
+- [yoga-om-strom README](./packages/yoga-om-strom/README.md)
 
 ## What can it do?
 

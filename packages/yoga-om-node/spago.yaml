@@ -3,6 +3,9 @@ package:
   publish:
     version: 1.0.0
     license: MIT
+    exclude:
+      - "src/**/*.test.purs"
+      - "src/Test/**"
     location:
       githubOwner: rowtype-yoga
       githubRepo: purescript-yoga-om
@@ -17,4 +20,9 @@ package:
     - node-path: ">=5.0.0 <6.0.0"
     - node-process: ">=11.2.0 <12.0.0"
     - prelude: ">=6.0.1 <7.0.0"
+    - spec: ">=7.0.0 <8.0.0"
     - yoga-om-core: "*"
+  test:
+    main: Test.Main.Node
+    dependencies:
+      - spec: ">=7.0.0 <8.0.0"

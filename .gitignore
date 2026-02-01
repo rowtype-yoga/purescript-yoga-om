@@ -1,10 +1,36 @@
-/bower_components/
-/node_modules/
-/.pulp-cache/
-/output/
-/generated-docs/
-/.psc-package/
-/.psc*
-/.purs*
-/.psa*
-/.spago
+# Dependencies
+node_modules/
+.spago/
+output/
+
+# Build artifacts
+.psci_modules/
+.psc-ide-port
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files (keep bun.lock)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Test coverage
+coverage/
+
+# Temporary files
+tmp/
+temp/
+.tmp/

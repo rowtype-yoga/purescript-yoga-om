@@ -1,0 +1,11 @@
+{
+  "name": "purescript-yoga-om-rom",
+  "version": "1.0.0",
+  "description": "Reactive Om - Bolson-based FRP integration for yoga-om",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-om.git",
+    "directory": "packages/yoga-om-rom"
+  }
+}

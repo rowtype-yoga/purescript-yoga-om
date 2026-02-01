@@ -51,6 +51,9 @@
               "record-studio": ">=1.0.0 <2.0.0"
             },
             {
+              "spec": ">=7.0.0 <8.0.0"
+            },
+            {
               "tailrec": ">=6.0.0 <7.0.0"
             },
             {
@@ -74,9 +77,11 @@
           ],
           "build_plan": [
             "aff",
+            "ansi",
             "arrays",
             "avar",
             "bifunctors",
+            "catenable-lists",
             "console",
             "const",
             "contravariant",
@@ -89,6 +94,8 @@
             "exceptions",
             "exists",
             "foldable-traversable",
+            "fork",
+            "free",
             "functions",
             "functors",
             "gen",
@@ -99,20 +106,25 @@
             "lazy",
             "lists",
             "maybe",
+            "mmorph",
             "newtype",
             "nonempty",
+            "now",
             "numbers",
             "ordered-collections",
             "orders",
             "parallel",
             "partial",
+            "pipes",
             "prelude",
             "profunctor",
             "record",
             "record-studio",
             "refs",
             "safe-coerce",
+            "spec",
             "st",
+            "strings",
             "tailrec",
             "transformers",
             "tuples",
@@ -125,8 +137,166 @@
           ]
         },
         "test": {
-          "dependencies": [],
+          "dependencies": [
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            }
+          ],
           "build_plan": []
+        }
+      },
+      "yoga-om-layer": {
+        "path": "packages/yoga-om-layer",
+        "core": {
+          "dependencies": [
+            {
+              "aff": ">=7.0.0 <8.0.0"
+            },
+            {
+              "effect": ">=4.0.0 <5.0.0"
+            },
+            {
+              "newtype": ">=5.0.0 <6.0.0"
+            },
+            {
+              "prelude": ">=6.0.0 <7.0.0"
+            },
+            {
+              "record": ">=4.0.0 <5.0.0"
+            },
+            {
+              "typelevel-prelude": ">=7.0.0 <8.0.0"
+            },
+            "yoga-om-core"
+          ],
+          "build_plan": [
+            "aff",
+            "ansi",
+            "arrays",
+            "avar",
+            "bifunctors",
+            "catenable-lists",
+            "console",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "fork",
+            "free",
+            "functions",
+            "functors",
+            "gen",
+            "heterogeneous",
+            "identity",
+            "integers",
+            "invariant",
+            "lazy",
+            "lists",
+            "maybe",
+            "mmorph",
+            "newtype",
+            "nonempty",
+            "now",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "pipes",
+            "prelude",
+            "profunctor",
+            "record",
+            "record-studio",
+            "refs",
+            "safe-coerce",
+            "spec",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "typelevel-prelude",
+            "uncurried-transformers",
+            "unfoldable",
+            "unsafe-coerce",
+            "variant",
+            "yoga-om-core"
+          ]
+        },
+        "test": {
+          "dependencies": [
+            {
+              "console": ">=6.0.0 <7.0.0"
+            },
+            {
+              "refs": ">=6.0.0 <7.0.0"
+            },
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            }
+          ],
+          "build_plan": [
+            "aff",
+            "ansi",
+            "arrays",
+            "avar",
+            "bifunctors",
+            "catenable-lists",
+            "console",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "fork",
+            "free",
+            "functions",
+            "functors",
+            "gen",
+            "identity",
+            "integers",
+            "invariant",
+            "lazy",
+            "lists",
+            "maybe",
+            "mmorph",
+            "newtype",
+            "nonempty",
+            "now",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "pipes",
+            "prelude",
+            "profunctor",
+            "refs",
+            "safe-coerce",
+            "spec",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "unfoldable",
+            "unsafe-coerce"
+          ]
         }
       },
       "yoga-om-node": {
@@ -161,15 +331,20 @@
               "prelude": ">=6.0.1 <7.0.0"
             },
             {
+              "spec": ">=7.0.0 <8.0.0"
+            },
+            {
               "yoga-om-core": "*"
             }
           ],
           "build_plan": [
             "aff",
+            "ansi",
             "arraybuffer-types",
             "arrays",
             "avar",
             "bifunctors",
+            "catenable-lists",
             "console",
             "const",
             "contravariant",
@@ -184,6 +359,8 @@
             "foldable-traversable",
             "foreign",
             "foreign-object",
+            "fork",
+            "free",
             "functions",
             "functors",
             "gen",
@@ -195,6 +372,7 @@
             "lazy",
             "lists",
             "maybe",
+            "mmorph",
             "newtype",
             "node-buffer",
             "node-event-emitter",
@@ -210,6 +388,7 @@
             "orders",
             "parallel",
             "partial",
+            "pipes",
             "posix-types",
             "prelude",
             "profunctor",
@@ -217,6 +396,7 @@
             "record-studio",
             "refs",
             "safe-coerce",
+            "spec",
             "st",
             "strings",
             "tailrec",
@@ -232,12 +412,16 @@
           ]
         },
         "test": {
-          "dependencies": [],
+          "dependencies": [
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            }
+          ],
           "build_plan": []
         }
       },
-      "yoga-om-streams": {
-        "path": "packages/yoga-om-streams",
+      "yoga-om-rom": {
+        "path": "packages/yoga-om-rom",
         "core": {
           "dependencies": [
             {
@@ -268,6 +452,9 @@
               "refs": ">=6.0.0 <7.0.0"
             },
             {
+              "spec": ">=7.0.0 <8.0.0"
+            },
+            {
               "tuples": ">=7.0.0 <8.0.0"
             },
             {
@@ -282,10 +469,12 @@
           ],
           "build_plan": [
             "aff",
+            "ansi",
             "arrays",
             "avar",
             "bifunctors",
             "bolson",
+            "catenable-lists",
             "console",
             "const",
             "contravariant",
@@ -302,6 +491,8 @@
             "foldable-traversable",
             "foreign",
             "foreign-object",
+            "fork",
+            "free",
             "functions",
             "functors",
             "gen",
@@ -316,6 +507,7 @@
             "lists",
             "maybe",
             "media-types",
+            "mmorph",
             "newtype",
             "nonempty",
             "now",
@@ -325,12 +517,14 @@
             "orders",
             "parallel",
             "partial",
+            "pipes",
             "prelude",
             "profunctor",
             "record",
             "record-studio",
             "refs",
             "safe-coerce",
+            "spec",
             "st",
             "strings",
             "tailrec",
@@ -353,7 +547,150 @@
           ]
         },
         "test": {
-          "dependencies": [],
+          "dependencies": [
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            }
+          ],
+          "build_plan": []
+        }
+      },
+      "yoga-om-strom": {
+        "path": "packages/yoga-om-strom",
+        "core": {
+          "dependencies": [
+            {
+              "aff": ">=7.1.0 <8.0.0"
+            },
+            {
+              "arrays": ">=7.0.0 <8.0.0"
+            },
+            {
+              "avar": ">=5.0.0 <6.0.0"
+            },
+            {
+              "control": ">=6.0.0 <7.0.0"
+            },
+            {
+              "datetime": ">=6.0.0 <7.0.0"
+            },
+            {
+              "effect": ">=4.0.0 <5.0.0"
+            },
+            {
+              "either": ">=6.1.0 <7.0.0"
+            },
+            {
+              "exceptions": ">=6.0.0 <7.0.0"
+            },
+            {
+              "foldable-traversable": ">=6.0.0 <7.0.0"
+            },
+            {
+              "lists": ">=7.0.0 <8.0.0"
+            },
+            {
+              "maybe": ">=6.0.0 <7.0.0"
+            },
+            {
+              "newtype": ">=5.0.0 <6.0.0"
+            },
+            {
+              "parallel": ">=6.0.0 <8.0.0"
+            },
+            {
+              "partial": ">=4.0.0 <5.0.0"
+            },
+            {
+              "prelude": ">=6.0.1 <7.0.0"
+            },
+            {
+              "refs": ">=6.0.0 <7.0.0"
+            },
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            },
+            {
+              "tuples": ">=7.0.0 <8.0.0"
+            },
+            {
+              "typelevel-prelude": ">=7.0.0 <8.0.0"
+            },
+            {
+              "variant": ">=8.0.0 <9.0.0"
+            },
+            {
+              "yoga-om-core": "*"
+            }
+          ],
+          "build_plan": [
+            "aff",
+            "ansi",
+            "arrays",
+            "avar",
+            "bifunctors",
+            "catenable-lists",
+            "console",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "fork",
+            "free",
+            "functions",
+            "functors",
+            "gen",
+            "heterogeneous",
+            "identity",
+            "integers",
+            "invariant",
+            "lazy",
+            "lists",
+            "maybe",
+            "mmorph",
+            "newtype",
+            "nonempty",
+            "now",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "pipes",
+            "prelude",
+            "profunctor",
+            "record",
+            "record-studio",
+            "refs",
+            "safe-coerce",
+            "spec",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "typelevel-prelude",
+            "uncurried-transformers",
+            "unfoldable",
+            "unsafe-coerce",
+            "variant",
+            "yoga-om-core"
+          ]
+        },
+        "test": {
+          "dependencies": [
+            {
+              "spec": ">=7.0.0 <8.0.0"
+            }
+          ],
           "build_plan": []
         }
       },
@@ -367,7 +704,6 @@
             "datetime",
             "effect",
             "prelude",
-            "spec",
             "yoga-om-core",
             "yoga-om-node"
           ],

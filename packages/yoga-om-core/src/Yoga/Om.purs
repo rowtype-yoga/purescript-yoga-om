@@ -8,6 +8,7 @@ module Yoga.Om
   , expandErr
   , fromAff
   , handleErrors
+  , handleErrors'
   , launchOm
   , launchOm_
   , note

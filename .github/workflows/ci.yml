@@ -15,6 +15,7 @@ jobs:
       - uses: purescript-contrib/setup-purescript@main
         with:
           purescript: "0.15.15"
+          spago: "0.93.45"
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -45,8 +46,20 @@ jobs:
       - name: Build yoga-om-node
         run: spago build -p yoga-om-node
 
-      - name: Build yoga-om-streams
-        run: spago build -p yoga-om-streams
+      - name: Build yoga-om-rom
+        run: spago build -p yoga-om-rom
 
-      - name: Run tests
-        run: spago test
+      - name: Build yoga-om-strom
+        run: spago build -p yoga-om-strom
+
+      - name: Test yoga-om-core
+        run: cd packages/yoga-om-core && spago test
+
+      - name: Test yoga-om-node
+        run: cd packages/yoga-om-node && spago test
+
+      - name: Test yoga-om-rom
+        run: cd packages/yoga-om-rom && spago test
+
+      - name: Test yoga-om-strom
+        run: cd packages/yoga-om-strom && spago test

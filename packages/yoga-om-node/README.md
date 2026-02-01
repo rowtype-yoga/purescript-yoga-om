@@ -70,9 +70,38 @@ type MyErrors r = Node.FileError + Node.EnvError +
   ( customError :: String | r )
 ```
 
+## Testing
+
+Tests are colocated with the implementation in the `test/` directory:
+
+```bash
+# Run tests
+cd packages/yoga-om-node && spago test
+
+# Or from workspace root
+bun test:node
+```
+
+See [test/Test/Node.purs](./test/Test/Node.purs) for test examples.
+
+## Package Structure
+
+```
+yoga-om-node/
+├── src/
+│   └── Yoga/
+│       └── Om/
+│           └── Node.purs       # Node.js extensions
+└── test/                        # Tests colocated here!
+    └── Test/
+        ├── Main.purs           # Test runner
+        └── Node.purs           # Node-specific tests
+```
+
 ## See Also
 
 - **[yoga-om-core](../yoga-om-core)** - Core Om functionality (required)
-- **[yoga-om-streams](../yoga-om-streams)** - Bolson FRP integration
+- **[yoga-om-rom](../yoga-om-rom)** - Reactive Om: Bolson FRP integration
+- **[yoga-om-strom](../yoga-om-strom)** - Stream Om: Pull-based streaming
 
-For more examples, see the [tests](../../test/Test/Node.purs).
+For more examples, see the [tests](./test/) and [main README](../../README.md).

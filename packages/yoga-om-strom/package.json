@@ -1,0 +1,10 @@
+{
+  "name": "@rowtype-yoga/yoga-om-strom",
+  "version": "0.1.0",
+  "description": "ZStream-inspired streaming library for yoga-om",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-om.git"
+  }
+}

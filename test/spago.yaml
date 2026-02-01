@@ -7,7 +7,6 @@ package:
     - datetime
     - effect
     - prelude
-    - spec
     - yoga-om-core
     - yoga-om-node
   test:

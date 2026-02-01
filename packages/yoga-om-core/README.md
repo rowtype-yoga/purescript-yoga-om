@@ -69,9 +69,41 @@ fetchMultiple = Om.inParallel
   ]
 ```
 
+## Testing
+
+Tests are colocated with the implementation in the `test/` directory:
+
+```bash
+# Run tests
+cd packages/yoga-om-core && spago test
+
+# Or from workspace root
+bun test:core
+```
+
+See [test/Test/Om/Core.purs](./test/Test/Om/Core.purs) for comprehensive test examples.
+
+## Package Structure
+
+```
+yoga-om-core/
+├── src/
+│   └── Yoga/
+│       ├── Om.purs          # Main Om implementation
+│       └── Om/
+│           ├── Error.purs   # Error types and helpers
+│           └── Error.js     # FFI for error handling
+└── test/                     # Tests colocated here!
+    └── Test/
+        ├── Main.purs        # Test runner
+        └── Om/
+            └── Core.purs    # Core Om tests (20 tests)
+```
+
 ## See Also
 
 - **[yoga-om-node](../yoga-om-node)** - Node.js-specific extensions
-- **[yoga-om-streams](../yoga-om-streams)** - Bolson FRP integration
+- **[yoga-om-rom](../yoga-om-rom)** - Reactive Om: Bolson FRP integration (push-based)
+- **[yoga-om-strom](../yoga-om-strom)** - Stream Om: Pull-based streaming library
 
-For more examples, see the [main README](../../README.md) and [tests](../../test).
+For more examples, see the [main README](../../README.md) and [tests](./test/).

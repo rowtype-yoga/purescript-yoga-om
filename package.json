@@ -9,12 +9,13 @@
   "main": "index.js",
   "dependencies": {
     "purescript": "^0.15.15",
+    "purs-tidy": "^0.11.1",
     "spago": "^0.93.45"
   },
   "bugs": {
     "url": "https://github.com/rowtype-yoga/purescript-yoga-om/issues"
   },
-  "description": "A powerful general purpose type for writing applications - workspace with core, node, and streams packages",
+  "description": "A powerful general purpose type for writing applications - workspace with core, node, rom, and strom packages",
   "homepage": "https://github.com/rowtype-yoga/purescript-yoga-om#readme",
   "keywords": [
     "purescript",
@@ -28,10 +29,15 @@
   "packageManager": "bun@1.x",
   "scripts": {
     "build": "spago build",
-    "test": "spago test",
+    "test": "./test-all.sh",
+    "test:core": "cd packages/yoga-om-core && spago test",
+    "test:node": "cd packages/yoga-om-node && spago test",
+    "test:rom": "cd packages/yoga-om-rom && spago test",
+    "test:strom": "cd packages/yoga-om-strom && spago test",
     "build:core": "spago build -p yoga-om-core",
     "build:node": "spago build -p yoga-om-node",
-    "build:streams": "spago build -p yoga-om-streams"
+    "build:rom": "spago build -p yoga-om-rom",
+    "build:strom": "spago build -p yoga-om-strom"
   },
   "type": "module"
 }
