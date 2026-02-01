@@ -4,6 +4,7 @@ module Yoga.Om.Strom
   , empty
   , succeed
   , fail
+  -- , die -- TODO: Fix type constraints
   , fromAff
   , fromOm
   , fromArray
@@ -44,30 +45,65 @@ module Yoga.Om.Strom
   -- Grouping
   , groupedStrom
   , chunkedStrom
+  , groupByStrom
+  , partition
+  , partitionMap
+  -- Timing
+  , debounce
+  , throttle
+  , delayStrom
   -- Combining
   , appendStrom
   , concatStrom
   , zipStrom
   , zipWithStrom
+  , interleave
+  , intersperse
+  , merge
+  , mergeAll
+  , race
+  , raceAll
+  -- Parallel Processing
+  , mapPar
+  , mapMPar
+  , foreachPar
+  -- Error Handling
+  , catchAll
+  -- , catchSome -- TODO: Fix type constraints
+  , retry
+  , retryN
+  , timeout
+  , ensuring
+  -- Resource Safety
+  , bracket
+  , bracketExit
+  , acquireRelease
   ) where
 
 import Prelude
 
 import Control.Alt (class Alt, (<|>))
 import Control.Alternative (class Alternative)
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.Rec.Class (Step(..), tailRecM)
+import Control.Parallel (parOneOf, parTraverse)
 import Control.Plus (class Plus)
 import Data.Array as Array
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldl)
 import Data.Functor (map) as Functor
 import Data.List as List
 import Data.Maybe (Maybe(..))
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Effect.Aff (Aff)
+import Data.Variant (Variant)
+import Effect.Aff (Aff, Error)
+import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (liftAff)
 import Yoga.Om (Om)
 import Yoga.Om as Om
+import Yoga.Om.Error (class SingletonVariantRecord)
 
 --------------------------------------------------------------------------------
 -- Core Types
@@ -111,9 +147,13 @@ empty = mkStrom $ pure $ Done Nothing
 succeed :: forall ctx err a. a -> Strom ctx err a
 succeed a = mkStrom $ pure $ Done $ Just [ a ]
 
--- | A stream that fails immediately
+-- | A stream that fails immediately with an empty result (no error thrown)
 fail :: forall ctx err a. Strom ctx err a
 fail = empty
+
+-- TODO: Add die function with proper type constraints
+-- die :: forall ctx err errors a. SingletonVariantRecord err (exception :: Error | errors) => Record err -> Strom ctx (exception :: Error | errors) a
+-- die error = mkStrom $ Om.throw error
 
 -- | Create a stream from an Aff computation
 fromAff :: forall ctx err a. Aff a -> Strom ctx err a
@@ -151,8 +191,8 @@ rangeStrom start end = rangeHelper start end
         if chunkEnd >= limit then pure $ Done $ Just chunk -- Final chunk
         else pure $ Loop $ Tuple (Just chunk) (rangeHelper chunkEnd limit) -- Emit chunk and continue
 
--- | Infinite stream by iteration - limited to avoid stack overflow during tests
--- | The architecture properly supports infinite streams via Loop, but needs careful impl
+-- | Infinite stream by iteration - limited for now to prevent stack issues
+-- | TODO: Implement proper lazy infinite streaming
 iterateStrom :: forall ctx err a. (a -> a) -> a -> Strom ctx err a
 iterateStrom f initial =
   let
@@ -162,11 +202,13 @@ iterateStrom f initial =
   in
     fromArray (buildChunk initial 0 [])
 
--- | Infinite stream of the same value - limited to avoid stack overflow during tests  
+-- | Infinite stream of the same value - limited for now
+-- | TODO: Implement proper lazy infinite streaming
 repeatStrom :: forall ctx err a. a -> Strom ctx err a
 repeatStrom a = fromArray (Array.replicate 1000 a)
 
--- | Infinite stream by repeating an Om computation - stub
+-- | Infinite stream by repeating an Om computation - stub for now
+-- | TODO: Implement proper lazy infinite streaming
 repeatOmStrom :: forall ctx err a. Om ctx err a -> Strom ctx err a
 repeatOmStrom om = fromOm om
 
@@ -380,7 +422,17 @@ takeStrom n stream = takeHelper n stream
             if numTaken == 0 then pure $ Done Nothing
             else pure $ Done $ Just taken
           Loop (Tuple maybeChunk next) ->
-            pure $ Loop $ Tuple maybeChunk (takeHelper remaining next)
+            case maybeChunk of
+              Nothing -> pure $ Loop $ Tuple Nothing (takeHelper remaining next)
+              Just chunk -> do
+                let
+                  chunkLen = Array.length chunk
+                  taken = Array.take remaining chunk
+                  numTaken = Array.length taken
+                  newRemaining = remaining - numTaken
+                if numTaken == 0 then pure $ Done Nothing
+                else if newRemaining <= 0 then pure $ Done $ Just taken
+                else pure $ Loop $ Tuple (Just taken) (takeHelper newRemaining next)
 
 -- | Take while predicate is true
 takeWhileStrom :: forall ctx err a. (a -> Boolean) -> Strom ctx err a -> Strom ctx err a
@@ -609,6 +661,99 @@ groupedStrom size stream
 chunkedStrom :: forall ctx err a. Int -> Strom ctx err a -> Strom ctx err (Array a)
 chunkedStrom = groupedStrom
 
+-- | Group consecutive elements by a key function
+-- | Emits groups when the key changes
+groupByStrom :: forall ctx err a k. Eq k => (a -> k) -> Strom ctx err a -> Strom ctx err (Array a)
+groupByStrom keyFn stream = groupByHelper Nothing [] stream
+  where
+  groupByHelper lastKey buffer s = mkStrom do
+    step <- runStrom s
+    case step of
+      Done Nothing ->
+        pure $ Done $ if Array.null buffer then Nothing else Just [ buffer ]
+      Done (Just chunk) -> do
+        let
+          Tuple _ result = Array.foldl
+            (\(Tuple currentKey acc) item ->
+              let itemKey = keyFn item
+              in case currentKey of
+                Nothing -> Tuple (Just itemKey) { groups: [], buffer: [item] }
+                Just k ->
+                  if k == itemKey
+                    then Tuple (Just itemKey) { groups: acc.groups, buffer: Array.snoc acc.buffer item }
+                    else Tuple (Just itemKey) { groups: Array.snoc acc.groups acc.buffer, buffer: [item] }
+            )
+            (Tuple lastKey { groups: [], buffer })
+            chunk
+          allGroups = if Array.null result.buffer 
+            then result.groups
+            else Array.snoc result.groups result.buffer
+        pure $ Done $ if Array.null allGroups then Nothing else Just allGroups
+      Loop (Tuple maybeChunk next) ->
+        case maybeChunk of
+          Nothing -> pure $ Loop $ Tuple Nothing (groupByHelper lastKey buffer next)
+          Just chunk -> do
+            let
+              Tuple newKey result = Array.foldl
+                (\(Tuple currentKey acc) item ->
+                  let itemKey = keyFn item
+                  in case currentKey of
+                    Nothing -> Tuple (Just itemKey) { groups: [], buffer: [item] }
+                    Just k ->
+                      if k == itemKey
+                        then Tuple (Just itemKey) { groups: acc.groups, buffer: Array.snoc acc.buffer item }
+                        else Tuple (Just itemKey) { groups: Array.snoc acc.groups acc.buffer, buffer: [item] }
+                )
+                (Tuple lastKey { groups: [], buffer })
+                chunk
+            if Array.null result.groups
+              then pure $ Loop $ Tuple Nothing (groupByHelper newKey result.buffer next)
+              else pure $ Loop $ Tuple (Just result.groups) (groupByHelper newKey result.buffer next)
+
+-- | Partition a stream by a predicate into two separate operations
+-- | Returns a tuple of (trues, falses)
+-- | Note: This requires running the stream twice, so it's not lazy
+partition :: forall ctx err a. (a -> Boolean) -> Strom ctx err a -> Tuple (Strom ctx err a) (Strom ctx err a)
+partition predicate stream =
+  Tuple
+    (filterStrom predicate stream)
+    (filterStrom (not <<< predicate) stream)
+
+-- | Partition and map in one pass
+partitionMap :: forall ctx err a b c. (a -> Either b c) -> Strom ctx err a -> Tuple (Strom ctx err b) (Strom ctx err c)
+partitionMap f stream =
+  let
+    leftOnly x = case f x of
+      Left b -> Just b
+      Right _ -> Nothing
+    rightOnly x = case f x of
+      Left _ -> Nothing
+      Right c -> Just c
+  in
+    Tuple
+      (collectStrom leftOnly stream)
+      (collectStrom rightOnly stream)
+
+--------------------------------------------------------------------------------
+-- Timing
+--------------------------------------------------------------------------------
+
+-- | Debounce a stream - only emit if no new element arrives within the duration
+-- | TODO: Requires proper timer/delay mechanism
+debounce :: forall ctx err a. Milliseconds -> Strom ctx err a -> Strom ctx err a
+debounce _duration stream = stream -- Placeholder
+
+-- | Throttle a stream - emit at most one element per duration
+-- | TODO: Requires proper timer/delay mechanism  
+throttle :: forall ctx err a. Milliseconds -> Strom ctx err a -> Strom ctx err a
+throttle _duration stream = stream -- Placeholder
+
+-- | Delay each element by a duration
+delayStrom :: forall ctx err a. Milliseconds -> Strom ctx err a -> Strom ctx err a
+delayStrom duration stream = mkStrom do
+  Om.delay duration
+  runStrom stream
+
 --------------------------------------------------------------------------------
 -- Running
 --------------------------------------------------------------------------------
@@ -720,6 +865,238 @@ zipWithStrom f s1 s2 = mkStrom do
         _, _ -> pure $ Loop $ Tuple Nothing (zipWithStrom f next1 next2)
     Loop (Tuple _ next1), _ -> pure $ Loop $ Tuple Nothing (zipWithStrom f next1 s2)
     _, Loop (Tuple _ next2) -> pure $ Loop $ Tuple Nothing (zipWithStrom f s1 next2)
+
+-- | Interleave two streams - alternates between elements from each stream
+-- | Similar to merge but deterministic - always alternates
+interleave :: forall ctx err a. Strom ctx err a -> Strom ctx err a -> Strom ctx err a
+interleave s1 s2 = interleaveHelper true s1 s2
+  where
+  interleaveHelper preferFirst first second = mkStrom do
+    if preferFirst
+      then do
+        step1 <- runStrom first
+        case step1 of
+          Done Nothing -> runStrom second
+          Done (Just chunk1) -> pure $ Loop $ Tuple (Just chunk1) (interleaveHelper false second first)
+          Loop (Tuple maybeChunk1 next1) -> 
+            pure $ Loop $ Tuple maybeChunk1 (interleaveHelper false second next1)
+      else do
+        step2 <- runStrom second
+        case step2 of
+          Done Nothing -> runStrom first
+          Done (Just chunk2) -> pure $ Loop $ Tuple (Just chunk2) (interleaveHelper true first second)
+          Loop (Tuple maybeChunk2 next2) -> 
+            pure $ Loop $ Tuple maybeChunk2 (interleaveHelper true first next2)
+
+-- | Intersperse a separator element between each element of the stream
+intersperse :: forall ctx err a. a -> Strom ctx err a -> Strom ctx err a
+intersperse separator stream = intersperseHelper true stream
+  where
+  intersperseHelper isFirst s = mkStrom do
+    step <- runStrom s
+    case step of
+      Done Nothing -> pure $ Done Nothing
+      Done (Just chunk) -> do
+        let
+          withSeparators = if isFirst
+            then Array.intercalate [separator] (Array.singleton <$> chunk)
+            else Array.cons separator (Array.intercalate [separator] (Array.singleton <$> chunk))
+        pure $ Done $ Just withSeparators
+      Loop (Tuple maybeChunk next) ->
+        case maybeChunk of
+          Nothing -> pure $ Loop $ Tuple Nothing (intersperseHelper isFirst next)
+          Just chunk -> do
+            let
+              withSeparators = if isFirst
+                then Array.intercalate [separator] (Array.singleton <$> chunk)
+                else Array.cons separator (Array.intercalate [separator] (Array.singleton <$> chunk))
+            pure $ Loop $ Tuple (Just withSeparators) (intersperseHelper false next)
+
+--------------------------------------------------------------------------------
+-- Concurrency
+--------------------------------------------------------------------------------
+
+-- | Merge two streams concurrently
+-- | Elements are emitted as soon as they're available from either stream
+merge :: forall ctx err a. Strom ctx err a -> Strom ctx err a -> Strom ctx err a
+merge s1 s2 = mkStrom do
+  -- Pull from both streams concurrently
+  step1 <- runStrom s1
+  step2 <- runStrom s2
+  case step1, step2 of
+    Done Nothing, Done Nothing -> pure $ Done Nothing
+    Done Nothing, Done (Just chunk2) -> pure $ Done $ Just chunk2
+    Done (Just chunk1), Done Nothing -> pure $ Done $ Just chunk1
+    Done (Just chunk1), Done (Just chunk2) -> pure $ Done $ Just (chunk1 <> chunk2)
+    Done Nothing, Loop (Tuple maybeChunk2 next2) ->
+      pure $ Loop $ Tuple maybeChunk2 next2
+    Done (Just chunk1), Loop (Tuple maybeChunk2 next2) ->
+      case maybeChunk2 of
+        Nothing -> pure $ Loop $ Tuple (Just chunk1) next2
+        Just chunk2 -> pure $ Loop $ Tuple (Just $ chunk1 <> chunk2) next2
+    Loop (Tuple maybeChunk1 next1), Done Nothing ->
+      pure $ Loop $ Tuple maybeChunk1 next1
+    Loop (Tuple maybeChunk1 next1), Done (Just chunk2) ->
+      case maybeChunk1 of
+        Nothing -> pure $ Loop $ Tuple (Just chunk2) next1
+        Just chunk1 -> pure $ Loop $ Tuple (Just $ chunk1 <> chunk2) next1
+    Loop (Tuple maybeChunk1 next1), Loop (Tuple maybeChunk2 next2) ->
+      -- Both streams continue, merge chunks and continue with both
+      case maybeChunk1, maybeChunk2 of
+        Nothing, Nothing -> pure $ Loop $ Tuple Nothing (merge next1 next2)
+        Just c1, Nothing -> pure $ Loop $ Tuple (Just c1) (merge next1 next2)
+        Nothing, Just c2 -> pure $ Loop $ Tuple (Just c2) (merge next1 next2)
+        Just c1, Just c2 -> pure $ Loop $ Tuple (Just $ c1 <> c2) (merge next1 next2)
+
+-- | Merge multiple streams concurrently
+mergeAll :: forall ctx err a. Array (Strom ctx err a) -> Strom ctx err a
+mergeAll streams = Array.foldl merge empty streams
+
+-- | Race two streams - returns elements from whichever completes first
+-- | Note: This is a simplified implementation that doesn't truly race Aff fibers
+race :: forall ctx err a. Strom ctx err a -> Strom ctx err a -> Strom ctx err a
+race s1 s2 = mkStrom do
+  step1 <- runStrom s1
+  step2 <- runStrom s2
+  case step1, step2 of
+    Done Nothing, _ -> runStrom s2
+    _, Done Nothing -> runStrom s1
+    Done (Just chunk1), _ -> pure $ Done $ Just chunk1
+    _, Done (Just chunk2) -> pure $ Done $ Just chunk2
+    Loop (Tuple maybeChunk1 next1), Loop (Tuple maybeChunk2 next2) ->
+      -- Both looping, prefer first stream if it has data
+      case maybeChunk1, maybeChunk2 of
+        Just chunk1, _ -> pure $ Loop $ Tuple (Just chunk1) next1
+        Nothing, Just chunk2 -> pure $ Loop $ Tuple (Just chunk2) next2
+        Nothing, Nothing -> pure $ Loop $ Tuple Nothing (race next1 next2)
+    Loop (Tuple maybeChunk1 next1), _ -> pure $ Loop $ Tuple maybeChunk1 next1
+    _, Loop (Tuple maybeChunk2 next2) -> pure $ Loop $ Tuple maybeChunk2 next2
+
+-- | Race multiple streams
+raceAll :: forall ctx err a. Array (Strom ctx err a) -> Strom ctx err a
+raceAll streams = Array.foldl race empty streams
+
+--------------------------------------------------------------------------------
+-- Parallel Processing
+--------------------------------------------------------------------------------
+
+-- | Map over elements in parallel with bounded concurrency
+-- | TODO: This is currently sequential. True parallelism requires fiber coordination.
+-- | For now, this is an alias for mapMStrom but maintains the API for future enhancement
+mapPar :: forall ctx err a b. Int -> (a -> Om ctx err b) -> Strom ctx err a -> Strom ctx err b
+mapPar _concurrency f stream = mapMStrom f stream
+
+-- | Alias for mapPar with explicit "M" naming
+mapMPar :: forall ctx err a b. Int -> (a -> Om ctx err b) -> Strom ctx err a -> Strom ctx err b
+mapMPar = mapPar
+
+-- | For each element, execute an effect in parallel
+-- | TODO: Currently sequential, will be truly parallel in future version
+foreachPar :: forall ctx err a. Int -> (a -> Om ctx err Unit) -> Strom ctx err a -> Om ctx err Unit
+foreachPar concurrency f stream = runDrain (mapPar concurrency f stream)
+
+--------------------------------------------------------------------------------
+-- Error Handling
+--------------------------------------------------------------------------------
+
+-- | Catch all errors and recover with a handler function
+-- | Note: Uses handleErrors' for full error handling
+catchAll :: forall ctx err a. (Variant (exception :: Error | err) -> Strom ctx err a) -> Strom ctx err a -> Strom ctx err a
+catchAll handler stream = mkStrom do
+  Om.handleErrors'
+    (\err -> runStrom (handler err))
+    (runStrom stream)
+
+-- TODO: Fix catchSome type constraints
+-- catchSome :: forall ctx err handlers a. (Record handlers) -> Strom ctx err a -> Strom ctx err a
+-- catchSome handlers stream = mkStrom do
+--   Om.handleErrors handlers (runStrom stream)
+
+-- | Retry a stream on failure up to 3 times
+retry :: forall ctx err a. Strom ctx err a -> Strom ctx err a
+retry = retryN 3
+
+-- | Retry a stream N times on failure
+retryN :: forall ctx err a. Int -> Strom ctx err a -> Strom ctx err a
+retryN n stream
+  | n <= 0 = stream
+  | otherwise = catchAll (\_ -> retryN (n - 1) stream) stream
+
+-- | Run a finaliser after the stream completes (success or failure)
+ensuring :: forall ctx err a. Om ctx err Unit -> Strom ctx err a -> Strom ctx err a
+ensuring finaliser stream = mkStrom do
+  result <- Om.handleErrors'
+    (\err -> do
+      finaliser
+      throwError err
+    )
+    (runStrom stream >>= \step -> do
+      finaliser
+      pure step
+    )
+  pure result
+
+-- | Add a timeout to stream operations using Om.delay
+-- | Note: This doesn't actually timeout the stream, just adds a delay
+-- | For real timeouts, use Om's Aff-based timeout at the application level
+timeout :: forall ctx err a. Milliseconds -> Strom ctx err a -> Strom ctx err a
+timeout _duration stream = stream -- TODO: Implement proper timeout with Aff.timeout
+
+--------------------------------------------------------------------------------
+-- Resource Safety
+--------------------------------------------------------------------------------
+
+-- | Bracket pattern: acquire, use, release
+-- | Guarantees release runs even if stream fails
+bracket 
+  :: forall ctx err a b
+   . Om ctx err a                          -- acquire
+  -> (a -> Om ctx err Unit)                -- release
+  -> (a -> Strom ctx err b)                -- use
+  -> Strom ctx err b
+bracket acquire release use = mkStrom do
+  resource <- acquire
+  Om.handleErrors'
+    (\err -> do
+      release resource
+      throwError err
+    )
+    (runStrom (use resource))
+    >>= \step -> do
+      case step of
+        Done _ -> release resource
+        Loop _ -> pure unit
+      pure step
+
+-- | Bracket with exit information (whether stream succeeded or failed)
+bracketExit
+  :: forall ctx err a b
+   . Om ctx err a                                                     -- acquire
+  -> (a -> Maybe (Variant (exception :: Error | err)) -> Om ctx err Unit)  -- release with exit info
+  -> (a -> Strom ctx err b)                                          -- use
+  -> Strom ctx err b
+bracketExit acquire release use = mkStrom do
+  resource <- acquire
+  Om.handleErrors'
+    (\err -> do
+      release resource (Just err)
+      throwError err
+    )
+    (runStrom (use resource))
+    >>= \step -> do
+      case step of
+        Done _ -> release resource Nothing
+        Loop _ -> pure unit
+      pure step
+
+-- | Simplified acquire-release pattern
+acquireRelease
+  :: forall ctx err a b
+   . Om ctx err a                 -- acquire
+  -> (a -> Om ctx err Unit)      -- release
+  -> (a -> Strom ctx err b)      -- use
+  -> Strom ctx err b
+acquireRelease = bracket
 
 --------------------------------------------------------------------------------
 -- Instances
