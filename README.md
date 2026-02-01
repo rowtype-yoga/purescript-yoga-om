@@ -1,19 +1,66 @@
-# 🕉️ (Om)
+# 🕉️ yoga-om
 
+A powerful general purpose type for writing applications with dependency injection and checked exceptions.
 
-A powerful general purpose type for writing applications.
+This workspace contains three packages:
+
+- **[yoga-om-core](./packages/yoga-om-core)** - Core Om types and operations (platform-agnostic)
+- **[yoga-om-node](./packages/yoga-om-node)** - Node.js-specific extensions
+- **[yoga-om-streams](./packages/yoga-om-streams)** - Bolson-based streaming/FRP integration
 
 For an extensive overview checkout the [tests](./test/Test/Main.purs).
 
 ## Installation
 
+This project recommends [Bun](https://bun.sh) as the package manager for faster installs and better performance (~3x faster than npm).
+
 ```bash
-spago install yoga-om
+# Install Bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+
+# Install workspace dependencies
+bun install
+
+# Build all packages
+bun run build
+
+# Run tests
+bun run test
+```
+
+> **Note:** While npm/yarn will work, Bun is recommended for the best developer experience. The `packageManager` field in `package.json` indicates the preferred tool.
+
+### Adding Packages to Your Project
+
+### Core Package (Required)
+
+```bash
+spago install yoga-om-core
+```
+
+### Node.js Extensions (Optional)
+
+```bash
+spago install yoga-om-node
+```
+
+### Streaming/FRP Integration (Optional)
+
+```bash
+spago install yoga-om-streams
 ```
 
 ## Quickstart
 
 Check out the [minimal example](#running-an-om)!
+
+## Which Package Should I Use?
+
+- **yoga-om-core**: Start here! This is the base package that provides the `Om` type and all core operations. It works in both browser and Node.js environments.
+
+- **yoga-om-node**: Add this if you're building a Node.js application and want convenient wrappers for file system operations, environment variables, etc.
+
+- **yoga-om-streams**: Add this if you're integrating with Bolson's FRP system for event-driven or reactive programming.
 
 ## What can it do?
 
@@ -101,29 +148,27 @@ That's the right time to supply the dependencies to your `Om` and to handle any 
 module Main where
 
 import Prelude
-import Node.Process (lookupEnv)
 import Effect.Class.Console as Console
 import Effect (Effect)
 import Data.Maybe (Maybe)
 import Yoga.Om as Om
 import Yoga.Om (Om)
+import Yoga.Om.Node as Node
 
 main :: Effect Unit
 main = do
-  envName <- lookupEnv "NAME"
   greet
     # Om.launchOm_
-        { envName }
+        {}
         { exception:
             \e -> Console.error ("Unexpected exception: " <> show e)
         , nameNotFound:
-            \_ -> Console.error "Make sure the $NAME env variable is set"
+            \{ variable } -> Console.error $ "Make sure the $" <> variable <> " env variable is set"
         }
 
-greet :: Om { envName :: Maybe String } (nameNotFound :: Unit) Unit
+greet :: Om {} (nameNotFound :: { variable :: String }) Unit
 greet = do
-  { envName } <- Om.ask
-  name <- envName # Om.note { nameNotFound: unit }
+  name <- Node.getEnv "NAME"
   Console.log $ "Welcome " <> name
 ```
 

@@ -1,0 +1,16 @@
+package:
+  name: yoga-om-tests
+  dependencies:
+    - aff
+    - arrays
+    - console
+    - datetime
+    - effect
+    - prelude
+    - spec
+    - yoga-om-core
+    - yoga-om-node
+  test:
+    main: Test.Main
+    dependencies:
+      - spec

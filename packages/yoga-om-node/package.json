@@ -1,0 +1,11 @@
+{
+  "name": "purescript-yoga-om-node",
+  "version": "1.0.0",
+  "description": "Node.js extensions for yoga-om",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-om.git",
+    "directory": "packages/yoga-om-node"
+  }
+}

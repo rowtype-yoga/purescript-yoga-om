@@ -1,24 +1,37 @@
 {
-  "name": "purescript-yoga-appm",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "name": "purescript-yoga-om-workspace",
+  "version": "2.0.0",
+  "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rowtype-yoga/purescript-yoga-appm.git"
+    "url": "git+https://github.com/rowtype-yoga/purescript-yoga-om.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rowtype-yoga/purescript-yoga-appm/issues"
-  },
-  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-appm#readme",
+  "main": "index.js",
   "dependencies": {
-    "purescript": "^0.15.7",
-    "spago": "^0.20.9"
-  }
+    "purescript": "^0.15.15",
+    "spago": "^0.93.45"
+  },
+  "bugs": {
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-om/issues"
+  },
+  "description": "A powerful general purpose type for writing applications - workspace with core, node, and streams packages",
+  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-om#readme",
+  "keywords": [
+    "purescript",
+    "functional-programming",
+    "dependency-injection",
+    "error-handling",
+    "aff",
+    "async"
+  ],
+  "license": "MIT",
+  "packageManager": "bun@1.x",
+  "scripts": {
+    "build": "spago build",
+    "test": "spago test",
+    "build:core": "spago build -p yoga-om-core",
+    "build:node": "spago build -p yoga-om-node",
+    "build:streams": "spago build -p yoga-om-streams"
+  },
+  "type": "module"
 }

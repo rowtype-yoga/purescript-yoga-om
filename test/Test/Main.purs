@@ -22,17 +22,16 @@ import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Yoga.Om (Om, launchOm_, runOm)
 import Yoga.Om as Om
-import Test.Spec.Reporter.TeamCity (teamcityReporter)
 import Effect.Aff (try)
 
 main :: Effect Unit
-main = launchAff_ $ runSpec [ consoleReporter, teamcityReporter ] spec
+main = launchAff_ $ runSpec [ consoleReporter ] spec
 
 someInt = 4
 
 spec :: Spec Unit
 spec = do
-  describe "Yoga Om" do
+  describe "Yoga.Om (Core)" do
 
     describe "Basics" do
 

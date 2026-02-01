@@ -2,7 +2,7 @@ name: CI
 
 on: 
   push:
-    branches: [main]
+    branches: [main, feature/*]
   pull_request:
     branches: [main]
 
@@ -10,28 +10,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - uses: purescript-contrib/setup-purescript@main
-
-      - uses: actions/setup-node@v2
         with:
-          node-version: "14"
+          purescript: "0.15.15"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Cache PureScript dependencies
-        uses: actions/cache@v2
-        # This cache uses the .dhall files to know when it should reinstall
+        uses: actions/cache@v4
+        # This cache uses the spago.yaml files to know when it should reinstall
         # and rebuild packages. It caches both the installed packages from
         # the `.spago` directory and compilation artifacts from the `output`
         # directory. When restored the compiler will rebuild any files that
-        # have changed. If you do not want to cache compiled output, remove
-        # the `output` path.
+        # have changed.
         with:
-          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.yaml') }}-${{ hashFiles('bun.lock') }}
           path: |
             .spago
             output
 
-      - run: spago build
+      - name: Build all workspace packages
+        run: spago build
 
-      - run: spago -x test.dhall test
+      - name: Build yoga-om-core
+        run: spago build -p yoga-om-core
+
+      - name: Build yoga-om-node
+        run: spago build -p yoga-om-node
+
+      - name: Build yoga-om-streams
+        run: spago build -p yoga-om-streams
+
+      - name: Run tests
+        run: spago test
