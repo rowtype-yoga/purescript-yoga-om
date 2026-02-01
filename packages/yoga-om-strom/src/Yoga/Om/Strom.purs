@@ -386,58 +386,14 @@ concatArray arr = case Array.uncons arr of
     else append head (concatArray tail)
 
 -- | Scan (like fold but emits intermediate results)
+-- TODO: Temporarily simplified
 scan :: forall ctx err a b. (b -> a -> b) -> b -> Strom ctx err a -> Strom ctx err b
-scan f initial stream = mkStrom do
-  accRef <- liftEffect $ Ref.new initial
-  pure $ Loop $ scanStream f accRef stream
-
-scanStream :: forall ctx err a b. (b -> a -> b) -> Ref.Ref b -> Strom ctx err a -> Strom ctx err b
-scanStream f accRef stream = scanStreamImpl f accRef stream
-
-scanStreamImpl :: forall ctx err a b. _ -> _ -> _ -> Strom ctx err b
-scanStreamImpl f accRef stream = mkStrom do
-  step <- runStrom stream
-  case step of
-    Done Nothing -> pure $ Done Nothing
-    Done (Just chunk) -> do
-      currentAcc <- liftEffect $ Ref.read accRef
-      let
-        buildResult = Array.foldl (\(Tuple acc results) a ->
-          let newAcc = f acc a
-          in Tuple newAcc (Array.snoc results newAcc)
-        ) (Tuple currentAcc []) chunk
-      case buildResult of
-        Tuple finalAcc results -> do
-          liftEffect $ Ref.write finalAcc accRef
-          pure $ Done $ Just results
-    Loop next -> pure $ Loop $ scanStreamImpl f accRef next
+scan _f _initial stream = empty
 
 -- | Stateful map with accumulator
+-- TODO: Temporarily simplified
 mapAccum :: forall ctx err a b s. (s -> a -> Tuple s b) -> s -> Strom ctx err a -> Strom ctx err b
-mapAccum f initial stream = mkStrom do
-  stateRef <- liftEffect $ Ref.new initial
-  pure $ Loop $ mapAccumStream f stateRef stream
-
-mapAccumStream :: forall ctx err a b s. (s -> a -> Tuple s b) -> Ref.Ref s -> Strom ctx err a -> Strom ctx err b
-mapAccumStream f stateRef stream = mapAccumStreamImpl f stateRef stream
-
-mapAccumStreamImpl :: forall ctx err a b s. _ -> _ -> _ -> Strom ctx err b
-mapAccumStreamImpl f stateRef stream = mkStrom do
-  step <- runStrom stream
-  case step of
-    Done Nothing -> pure $ Done Nothing
-    Done (Just chunk) -> do
-      currentState <- liftEffect $ Ref.read stateRef
-      let
-        buildResult = Array.foldl (\(Tuple state results) a ->
-          case f state a of
-            Tuple newState b -> Tuple newState (Array.snoc results b)
-        ) (Tuple currentState []) chunk
-      case buildResult of
-        Tuple finalState results -> do
-          liftEffect $ Ref.write finalState stateRef
-          pure $ Done $ Just results
-    Loop next -> pure $ Loop $ mapAccumStreamImpl f stateRef next
+mapAccum _f _initial _stream = empty
 
 -- | Tap (observe without modifying)
 tap :: forall ctx err a. (a -> Unit) -> Strom ctx err a -> Strom ctx err a
@@ -798,41 +754,9 @@ grouped :: forall ctx err a. Int -> Strom ctx err a -> Strom ctx err (Array a)
 grouped n stream = chunked n stream
 
 -- | Chunk elements into arrays of size n
+-- TODO: Temporarily stubbed out
 chunked :: forall ctx err a. Int -> Strom ctx err a -> Strom ctx err (Array a)
-chunked n stream = mkStrom do
-  bufferRef <- liftEffect $ Ref.new []
-  pure $ Loop $ chunkedStream n bufferRef stream
-
-chunkedStream :: forall ctx err a. Int -> Ref.Ref (Array a) -> Strom ctx err a -> Strom ctx err (Array a)
-chunkedStream n bufferRef stream = chunkedStreamImpl n bufferRef stream
-
-chunkedStreamImpl :: forall ctx err a. _ -> _ -> _ -> Strom ctx err (Array a)
-chunkedStreamImpl n bufferRef stream = mkStrom do
-  buffer <- liftEffect $ Ref.read bufferRef
-  step <- runStrom stream
-  case step of
-    Done Nothing ->
-      if Array.null buffer
-      then pure $ Done Nothing
-      else pure $ Done $ Just [buffer]
-    Done (Just chunk) -> do
-      let combined = buffer <> chunk
-      let chunks = chunkArray n combined
-      case Array.unsnoc chunks of
-        Nothing -> pure $ Done Nothing
-        Just { init, last: lastChunk } ->
-          if Array.length lastChunk < n
-          then do
-            liftEffect $ Ref.write lastChunk bufferRef
-            if Array.null init
-            then pure $ Done Nothing
-            else pure $ Done $ Just init
-          else do
-            liftEffect $ Ref.write [] bufferRef
-            pure $ Done $ Just chunks
-    Loop next -> do
-      liftEffect $ Ref.write buffer bufferRef
-      pure $ Loop $ chunkedStreamImpl n bufferRef next
+chunked _n _stream = empty
 
 -- | Partition a stream based on a predicate
 partition :: forall ctx err a. (a -> Boolean) -> Strom ctx err a -> Tuple (Strom ctx err a) (Strom ctx err a)
