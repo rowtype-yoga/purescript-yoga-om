@@ -50,7 +50,7 @@ aProgram = launchOm_ do
   programLayer # runLayer
     { config: { port: 5432, host: "localhost" }
     , logger: { log: Console.log }
-    , database: { query: \q -> "" }
+    , database: { query: \q -> pure [] }
     , cache: { get: \key -> pure Nothing }
     }
 

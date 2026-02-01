@@ -5,6 +5,7 @@ package:
     - prelude: ">=6.0.0 <7.0.0"
     - record: ">=4.0.0 <5.0.0"
     - typelevel-prelude: ">=7.0.0 <8.0.0"
+    - type-equality: ">=4.0.0 <5.0.0"
     - effect: ">=4.0.0 <5.0.0"
     - aff: ">=7.0.0 <8.0.0"
     - newtype: ">=5.0.0 <6.0.0"

@@ -8,6 +8,7 @@ import Prim.RowList (class RowToList, Cons, Nil, RowList)
 import Prim.TypeError (class Fail, Above, Quote, Text)
 import Record as Record
 import Record.Studio (class Keys)
+import Type.Equality (class TypeEquals)
 import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Om (Om)
 import Yoga.Om as Om
@@ -55,7 +56,9 @@ instance checkAllLabelsCons ::
 class CheckLabelExists (label :: Symbol) (ty :: Type) (available :: RowList Type) (requiredRow :: Row Type) (availableRow :: Row Type)
 
 -- Found it! The label matches in the instance head
+-- TypeEquals ensures the types at this label actually match!
 instance checkLabelExistsFound ::
+  TypeEquals ty ty' =>
   CheckLabelExists label ty (Cons label ty' tail) requiredRow availableRow
 
 -- Keep looking: different label, recurse on tail

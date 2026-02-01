@@ -20,7 +20,7 @@ failed=0
 # First, ensure the main package compiles (without negative tests)
 echo "Building main package..."
 cd "$WORKSPACE_ROOT"
-if ! npx spago build -p yoga-om-layer > /dev/null 2>&1; then
+if ! bunx spago build -p yoga-om-layer > /dev/null 2>&1; then
   echo "❌ Main package failed to build"
   exit 1
 fi
@@ -53,10 +53,11 @@ for test_file in "$TEST_DIR"/*.purs; do
   fi
   
   error_output=$(cd "$WORKSPACE_ROOT" && \
-    npx purs compile \
+    bunx purs compile \
       "$test_file" \
       "$SRC_DIR/**/*.purs" \
       "packages/yoga-om-core/src/**/*.purs" \
+      "output/**/*.js" \
       2>&1 || true)
   
   # Special case: should compile successfully

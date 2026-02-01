@@ -165,6 +165,9 @@
               "record": ">=4.0.0 <5.0.0"
             },
             {
+              "type-equality": ">=4.0.0 <5.0.0"
+            },
+            {
               "typelevel-prelude": ">=7.0.0 <8.0.0"
             },
             "yoga-om-core"
@@ -691,7 +694,59 @@
               "spec": ">=7.0.0 <8.0.0"
             }
           ],
-          "build_plan": []
+          "build_plan": [
+            "aff",
+            "ansi",
+            "arrays",
+            "avar",
+            "bifunctors",
+            "catenable-lists",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "fork",
+            "free",
+            "functions",
+            "functors",
+            "gen",
+            "identity",
+            "integers",
+            "invariant",
+            "lazy",
+            "lists",
+            "maybe",
+            "mmorph",
+            "newtype",
+            "nonempty",
+            "now",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "pipes",
+            "prelude",
+            "profunctor",
+            "refs",
+            "safe-coerce",
+            "spec",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "unfoldable",
+            "unsafe-coerce"
+          ]
         }
       },
       "yoga-om-tests": {

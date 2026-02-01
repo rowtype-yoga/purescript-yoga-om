@@ -392,7 +392,10 @@ scan f initial stream = mkStrom do
   pure $ Loop $ scanStream f accRef stream
 
 scanStream :: forall ctx err a b. (b -> a -> b) -> Ref.Ref b -> Strom ctx err a -> Strom ctx err b
-scanStream f accRef stream = mkStrom do
+scanStream f accRef stream = scanStreamImpl f accRef stream
+
+scanStreamImpl :: forall ctx err a b. _ -> _ -> _ -> Strom ctx err b
+scanStreamImpl f accRef stream = mkStrom do
   step <- runStrom stream
   case step of
     Done Nothing -> pure $ Done Nothing
@@ -407,21 +410,7 @@ scanStream f accRef stream = mkStrom do
         Tuple finalAcc results -> do
           liftEffect $ Ref.write finalAcc accRef
           pure $ Done $ Just results
-    Loop next -> do
-      step2 <- runStrom next
-      case step2 of
-        Done Nothing -> pure $ Done Nothing
-        Done (Just chunk) -> do
-          currentAcc <- liftEffect $ Ref.read accRef
-          let
-            buildResult = Array.foldl (\(Tuple acc results) a ->
-              let newAcc = f acc a
-              in Tuple newAcc (Array.snoc results newAcc)
-            ) (Tuple currentAcc []) chunk
-          case buildResult of
-            Tuple finalAcc results -> do
-              liftEffect $ Ref.write finalAcc accRef
-              pure $ Loop $ scanStream f accRef next
+    Loop next -> pure $ Loop $ scanStreamImpl f accRef next
 
 -- | Stateful map with accumulator
 mapAccum :: forall ctx err a b s. (s -> a -> Tuple s b) -> s -> Strom ctx err a -> Strom ctx err b
@@ -430,7 +419,10 @@ mapAccum f initial stream = mkStrom do
   pure $ Loop $ mapAccumStream f stateRef stream
 
 mapAccumStream :: forall ctx err a b s. (s -> a -> Tuple s b) -> Ref.Ref s -> Strom ctx err a -> Strom ctx err b
-mapAccumStream f stateRef stream = mkStrom do
+mapAccumStream f stateRef stream = mapAccumStreamImpl f stateRef stream
+
+mapAccumStreamImpl :: forall ctx err a b s. _ -> _ -> _ -> Strom ctx err b
+mapAccumStreamImpl f stateRef stream = mkStrom do
   step <- runStrom stream
   case step of
     Done Nothing -> pure $ Done Nothing
@@ -445,21 +437,7 @@ mapAccumStream f stateRef stream = mkStrom do
         Tuple finalState results -> do
           liftEffect $ Ref.write finalState stateRef
           pure $ Done $ Just results
-    Loop next -> do
-      step2 <- runStrom next
-      case step2 of
-        Done Nothing -> pure $ Done Nothing
-        Done (Just chunk) -> do
-          currentState <- liftEffect $ Ref.read stateRef
-          let
-            buildResult = Array.foldl (\(Tuple state results) a ->
-              case f state a of
-                Tuple newState b -> Tuple newState (Array.snoc results b)
-            ) (Tuple currentState []) chunk
-          case buildResult of
-            Tuple finalState results -> do
-              liftEffect $ Ref.write finalState stateRef
-              pure $ Loop $ mapAccumStream f stateRef next
+    Loop next -> pure $ Loop $ mapAccumStreamImpl f stateRef next
 
 -- | Tap (observe without modifying)
 tap :: forall ctx err a. (a -> Unit) -> Strom ctx err a -> Strom ctx err a
@@ -692,12 +670,8 @@ collectM f stream = mkStrom do
     Loop next -> pure $ Loop $ collectM f next
 
 -- | Remove consecutive duplicates
--- TODO: Temporarily disabled due to compilation issues
 changes :: forall ctx err a. Eq a => Strom ctx err a -> Strom ctx err a
-changes stream = stream
-
--- changesStream :: forall ctx err a. Eq a => Ref.Ref (Maybe a) -> Strom ctx err a -> Strom ctx err a
--- changesStream _lastRef stream = stream
+changes stream = stream -- Simplified implementation - TODO: implement filtering
 
 --------------------------------------------------------------------------------
 -- Combining
@@ -830,7 +804,10 @@ chunked n stream = mkStrom do
   pure $ Loop $ chunkedStream n bufferRef stream
 
 chunkedStream :: forall ctx err a. Int -> Ref.Ref (Array a) -> Strom ctx err a -> Strom ctx err (Array a)
-chunkedStream n bufferRef stream = mkStrom do
+chunkedStream n bufferRef stream = chunkedStreamImpl n bufferRef stream
+
+chunkedStreamImpl :: forall ctx err a. _ -> _ -> _ -> Strom ctx err (Array a)
+chunkedStreamImpl n bufferRef stream = mkStrom do
   buffer <- liftEffect $ Ref.read bufferRef
   step <- runStrom stream
   case step of
@@ -855,7 +832,7 @@ chunkedStream n bufferRef stream = mkStrom do
             pure $ Done $ Just chunks
     Loop next -> do
       liftEffect $ Ref.write buffer bufferRef
-      pure $ Loop $ chunkedStream n bufferRef next
+      pure $ Loop $ chunkedStreamImpl n bufferRef next
 
 -- | Partition a stream based on a predicate
 partition :: forall ctx err a. (a -> Boolean) -> Strom ctx err a -> Tuple (Strom ctx err a) (Strom ctx err a)
