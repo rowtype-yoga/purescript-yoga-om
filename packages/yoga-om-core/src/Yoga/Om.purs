@@ -19,6 +19,8 @@ module Yoga.Om
   , readerT
   , runOm
   , runReader
+  , tap
+  , tapM
   , throw
   , throwLeftAs
   , throwLeftAsM
@@ -119,6 +121,23 @@ inParallel = parSequence
 
 delay :: forall m d. MonadAff m => Duration d => d -> m Unit
 delay = liftAff <<< Aff.delay <<< fromDuration
+
+-- | Tap into a value for side effects (logging, debugging, etc.)
+-- | Returns the original value unchanged
+-- | ```purescript
+-- | users <- getUsers
+-- |   # tap \u -> log $ "Got " <> show (length u) <> " users"
+-- | ```
+tap :: forall ctx err a. (a -> Om ctx err Unit) -> a -> Om ctx err a
+tap f a = f a $> a
+
+-- | Monadic version of tap - useful when the tapping function is effectful
+-- | ```purescript
+-- | user <- getUser userId
+-- |   # tapM \u -> logUser u
+-- | ```
+tapM :: forall ctx err a. (a -> Om ctx err Unit) -> Om ctx err a -> Om ctx err a
+tapM f ma = ma >>= \a -> f a $> a
 
 -- | Turns a `Nothing` into an exception which reduces nesting and encourages
 -- | tracking what actually went wrong
