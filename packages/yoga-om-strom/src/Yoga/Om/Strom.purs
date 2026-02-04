@@ -232,31 +232,15 @@ rangeStrom start end = rangeHelper start end
 -- | Iterate producing values - limited to ~10,000 elements for stack safety
 -- | For truly infinite streams, use `iterateStromInfinite` (with Aff overhead)
 iterateStrom :: forall ctx err a. (a -> a) -> a -> Strom ctx err a
-iterateStrom f initial = iterateHelper initial 0
-  where
-  maxIterations = 10000
-  iterateHelper current count
-    | count >= maxIterations = empty
-    | otherwise = mkStrom do
-        let
-          chunkSize = 10000
-          remaining = min chunkSize (maxIterations - count)
-          result = buildChunk current remaining
-          chunk = result.arr
-        if count + chunkSize >= maxIterations then pure $ Done $ Just chunk
-        else pure $ Loop $ Tuple (Just chunk) (iterateHelper result.nextVal (count + chunkSize))
-
-  buildChunk val n = ST.run do
-    arr <- STArray.unsafeThaw []
-    valRef <- STRef.new val
-    iter <- Iterator.iterator (\i -> if i < n then Just i else Nothing)
-    Iterator.iterate iter \_ -> do
-      v <- STRef.read valRef
-      void $ STArray.push v arr
-      void $ STRef.modify f valRef
-    finalVal <- STRef.read valRef
-    frozen <- STArray.unsafeFreeze arr
-    pure { arr: frozen, nextVal: finalVal }
+iterateStrom f initial = fromArray $ ST.run do
+  arr <- STArray.unsafeThaw []
+  valRef <- STRef.new initial
+  iter <- Iterator.iterator (\i -> if i < 10000 then Just i else Nothing)
+  Iterator.iterate iter \_ -> do
+    v <- STRef.read valRef
+    void $ STArray.push v arr
+    void $ STRef.modify f valRef
+  STArray.unsafeFreeze arr
 
 -- | Truly infinite iteration - stack-safe via Aff async boundaries
 -- | Adds tiny delay (0ms) at each chunk to reset the stack
