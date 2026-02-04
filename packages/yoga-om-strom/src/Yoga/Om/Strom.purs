@@ -103,8 +103,12 @@ import Control.Alt (class Alt, (<|>))
 import Control.Alternative (class Alternative)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Rec.Class (Step(..), tailRecM)
+import Control.Monad.ST as ST
+import Control.Monad.ST.Ref as STRef
 import Control.Plus (class Plus)
 import Data.Array as Array
+import Data.Array.ST as STArray
+import Data.Array.ST.Iterator as Iterator
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldl)
 import Data.Functor (map) as Functor
@@ -237,14 +241,22 @@ iterateStrom f initial = iterateHelper initial 0
         let
           chunkSize = 100
           remaining = min chunkSize (maxIterations - count)
-          result = buildChunk current remaining List.Nil
-          chunk = Array.fromFoldable $ List.reverse result.list
+          result = buildChunk current remaining
+          chunk = result.arr
         if count + chunkSize >= maxIterations then pure $ Done $ Just chunk
         else pure $ Loop $ Tuple (Just chunk) (iterateHelper result.nextVal (count + chunkSize))
 
-  buildChunk val n acc
-    | n <= 0 = { list: acc, nextVal: val }
-    | otherwise = buildChunk (f val) (n - 1) (List.Cons val acc)
+  buildChunk val n = ST.run do
+    arr <- STArray.unsafeThaw []
+    valRef <- STRef.new val
+    iter <- Iterator.iterator (\i -> if i < n then Just i else Nothing)
+    Iterator.iterate iter \_ -> do
+      v <- STRef.read valRef
+      void $ STArray.push v arr
+      void $ STRef.modify f valRef
+    finalVal <- STRef.read valRef
+    frozen <- STArray.unsafeFreeze arr
+    pure { arr: frozen, nextVal: finalVal }
 
 -- | Truly infinite iteration - stack-safe via Aff async boundaries
 -- | Adds tiny delay (0ms) at each chunk to reset the stack
@@ -257,13 +269,19 @@ iterateStromInfinite f initial = iterateHelper initial
     liftAff $ delay (Milliseconds 0.0)
     let
       chunkSize = 10000
-      result = buildChunk current chunkSize List.Nil
-      chunk = Array.fromFoldable $ List.reverse result.list
-    pure $ Loop $ Tuple (Just chunk) (iterateHelper result.nextVal)
-
-  buildChunk val n acc
-    | n <= 0 = { list: acc, nextVal: val }
-    | otherwise = buildChunk (f val) (n - 1) (List.Cons val acc)
+      -- Build chunk using STArray with Iterator (stack-safe!)
+      result = ST.run do
+        arr <- STArray.unsafeThaw []
+        valRef <- STRef.new current
+        iter <- Iterator.iterator (\i -> if i < chunkSize then Just i else Nothing)
+        Iterator.iterate iter \_ -> do
+          val <- STRef.read valRef
+          void $ STArray.push val arr
+          void $ STRef.modify f valRef
+        finalVal <- STRef.read valRef
+        frozen <- STArray.unsafeFreeze arr
+        pure { arr: frozen, nextVal: finalVal }
+    pure $ Loop $ Tuple (Just result.arr) (iterateHelper result.nextVal)
 
 -- | Repeat a value - limited to ~10,000 elements for stack safety
 repeatStrom :: forall ctx err a. a -> Strom ctx err a
@@ -316,15 +334,24 @@ unfoldStrom f seed = unfoldHelper seed
         if Array.null chunk.values then runStrom (unfoldHelper nextSeed)
         else pure $ Loop $ Tuple (Just chunk.values) (unfoldHelper nextSeed)
 
-  buildChunk seed' size =
-    let
-      go s n acc =
-        if n >= size then { values: acc, finalSeed: Just s }
-        else case f s of
-          Nothing -> { values: acc, finalSeed: Nothing }
-          Just (Tuple value nextS) -> go nextS (n + 1) (Array.snoc acc value)
-    in
-      go seed' 0 []
+  buildChunk seed' size = ST.run do
+    arr <- STArray.unsafeThaw []
+    seedRef <- STRef.new seed'
+    stoppedRef <- STRef.new false
+    iter <- Iterator.iterator (\i -> if i < size then Just i else Nothing)
+    Iterator.iterate iter \_ -> do
+      stopped <- STRef.read stoppedRef
+      when (not stopped) do
+        s <- STRef.read seedRef
+        case f s of
+          Nothing -> void $ STRef.write true stoppedRef
+          Just (Tuple value nextS) -> do
+            void $ STArray.push value arr
+            void $ STRef.write nextS seedRef
+    frozen <- STArray.unsafeFreeze arr
+    stopped <- STRef.read stoppedRef
+    finalSeed <- STRef.read seedRef
+    pure { values: frozen, finalSeed: if stopped then Nothing else Just finalSeed }
 
 -- | Unfold a stream with an effectful function
 unfoldOmStrom :: forall ctx err a b. (b -> Om ctx err (Maybe (Tuple a b))) -> b -> Strom ctx err a
