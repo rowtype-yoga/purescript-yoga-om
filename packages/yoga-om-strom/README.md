@@ -382,15 +382,21 @@ Performance benchmarks on a modern system (median of 10 runs):
 | zip | 2x500k streams | <1ms |
 | zipWith | 2x500k streams | <1ms |
 | bind (flatMap) | 5k×10 | <1ms |
-| **Concurrent** | | |
-| mergeND | 2x1M streams | **485ms** |
-| mapPar (concurrency=4) | 5k elements | **355ms** |
+| **Concurrent (Pure)** | | |
+| mergeND (pure functions) | 2x1M streams | **485ms** ⚠️ |
+| mapPar (pure, concurrency=4) | 5k elements | **355ms** ⚠️ |
+| mergeND (with 1ms delays) | 2x100 elements | **~200ms** ✅ |
+| mapPar (with 10ms delays, conc=4) | 100 elements | **~250ms** ✅ |
 
 **Key Takeaways:**
 - ⚡ Most operations are **sub-millisecond** thanks to chunked processing and STArray optimizations
-- 🔄 Only truly concurrent operations (mergeND, mapPar) have observable overhead from async coordination
 - 🚀 Excellent throughput: **>2M elements/ms** for simple transformations
 - 📦 Efficient chunking (10,000 elements per chunk) minimizes overhead
+- ⚠️ **Concurrent operations** (`mergeND`, `mapPar`) have coordination overhead per chunk/group
+  - With **pure functions**: Overhead dominates (use sequential operations instead!)
+  - With **async I/O**: Parallelism provides huge speedup (e.g., 100 parallel 10ms tasks = 250ms vs 1000ms sequential)
+- 💡 **Use concurrent ops for**: API calls, database queries, file I/O
+- 💡 **Use sequential ops for**: Pure transformations, CPU-bound work
 
 ## Architecture
 

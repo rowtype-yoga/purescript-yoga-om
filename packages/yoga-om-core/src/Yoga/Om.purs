@@ -1,3 +1,8 @@
+-- @inline export tap arity=2
+-- @inline export tapM arity=2
+-- @inline export note arity=2
+-- @inline export fromAff arity=1
+-- @inline export runOm arity=2
 module Yoga.Om
   ( Om(..)
   , ParOm(..)

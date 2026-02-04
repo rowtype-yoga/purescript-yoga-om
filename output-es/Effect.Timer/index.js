@@ -1,0 +1,12 @@
+import * as Data$dOrd from "../Data.Ord/index.js";
+import {clearIntervalImpl, clearTimeoutImpl, setIntervalImpl, setTimeoutImpl} from "./foreign.js";
+const setTimeout = setTimeoutImpl;
+const setInterval = setIntervalImpl;
+const eqTimeoutId = {eq: x => y => x === y};
+const ordTimeoutId = {compare: x => y => Data$dOrd.ordInt.compare(x)(y), Eq0: () => eqTimeoutId};
+const eqIntervalId = {eq: x => y => x === y};
+const ordIntervalId = {compare: x => y => Data$dOrd.ordInt.compare(x)(y), Eq0: () => eqIntervalId};
+const clearTimeout = clearTimeoutImpl;
+const clearInterval = clearIntervalImpl;
+export {clearInterval, clearTimeout, eqIntervalId, eqTimeoutId, ordIntervalId, ordTimeoutId, setInterval, setTimeout};
+export * from "./foreign.js";

@@ -1,0 +1,12 @@
+import * as Data$dMaybe from "../Data.Maybe/index.js";
+import * as Data$dNullable from "../Data.Nullable/index.js";
+import * as Unsafe$dCoerce from "../Unsafe.Coerce/index.js";
+import * as Web$dInternal$dFFI from "../Web.Internal.FFI/index.js";
+import {_relatedTarget, altKey, button, buttons, clientX, clientY, ctrlKey, getModifierState, metaKey, pageX, pageY, screenX, screenY, shiftKey} from "./foreign.js";
+const toUIEvent = Unsafe$dCoerce.unsafeCoerce;
+const toEvent = Unsafe$dCoerce.unsafeCoerce;
+const relatedTarget = x => Data$dNullable.nullable(_relatedTarget(x), Data$dMaybe.Nothing, Data$dMaybe.Just);
+const fromUIEvent = /* #__PURE__ */ Web$dInternal$dFFI.unsafeReadProtoTagged("MouseEvent");
+const fromEvent = /* #__PURE__ */ Web$dInternal$dFFI.unsafeReadProtoTagged("MouseEvent");
+export {fromEvent, fromUIEvent, relatedTarget, toEvent, toUIEvent};
+export * from "./foreign.js";

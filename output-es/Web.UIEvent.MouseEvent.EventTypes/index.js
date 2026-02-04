@@ -1,0 +1,11 @@
+const mouseup = "mouseup";
+const mouseover = "mouseover";
+const mouseout = "mouseout";
+const mousemove = "mousemove";
+const mouseleave = "mouseleave";
+const mouseenter = "mouseenter";
+const mousedown = "mousedown";
+const dblclick = "dblclick";
+const click = "click";
+const auxclick = "auxclick";
+export {auxclick, click, dblclick, mousedown, mouseenter, mouseleave, mousemove, mouseout, mouseover, mouseup};

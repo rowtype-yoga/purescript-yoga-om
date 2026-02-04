@@ -1,0 +1,91 @@
+🚀 Running benchmarks on Deno 2.5.6
+============================================================
+🔥 Strom Performance Benchmark Suite
+=====================================
+
+
+🏃 map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 filter-2M-50pct (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 map-chain-3x-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 pipeline-map-filter-map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 fold-sum-1M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 collect-50k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 take-5k-from-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 mergeND-2x1M (runs: 10)
+  min:    103.0 ms
+  median: 118.0 ms
+  mean:   181.8 ms
+  max:    469.0 ms
+
+🏃 mapPar-concurrency4-5k (runs: 10)
+  min:    223.0 ms
+  median: 265.0 ms
+  mean:   308.7 ms
+  max:    833.0 ms
+
+🏃 scan-running-sum-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 unfold-10k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 infinite-iterate-take-10k (runs: 10)
+  min:    116.0 ms
+  median: 118.0 ms
+  mean:   118.6 ms
+  max:    123.0 ms
+
+🏃 bind-5kx10 (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 zip-2x500k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+✨ Benchmark suite complete!

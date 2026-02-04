@@ -1,0 +1,10 @@
+import * as Data$dMaybe from "../Data.Maybe/index.js";
+import * as Data$dNullable from "../Data.Nullable/index.js";
+import * as Unsafe$dCoerce from "../Unsafe.Coerce/index.js";
+import * as Web$dInternal$dFFI from "../Web.Internal.FFI/index.js";
+import {_view, detail} from "./foreign.js";
+const view = x => Data$dNullable.nullable(_view(x), Data$dMaybe.Nothing, Data$dMaybe.Just);
+const toEvent = Unsafe$dCoerce.unsafeCoerce;
+const fromEvent = /* #__PURE__ */ Web$dInternal$dFFI.unsafeReadProtoTagged("UIEvent");
+export {fromEvent, toEvent, view};
+export * from "./foreign.js";

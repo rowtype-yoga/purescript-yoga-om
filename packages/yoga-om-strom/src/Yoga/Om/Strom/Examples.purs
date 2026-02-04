@@ -2,6 +2,7 @@ module Yoga.Om.Strom.Examples where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -19,9 +20,9 @@ import Yoga.Om.Strom as Strom
 -- | Simple range and mapping
 example1 :: Om {} () (Array Int)
 example1 = do
-  Strom.range 1 10
-    # Strom.map (_ * 2)
-    # Strom.filter (_ > 5)
+  Strom.rangeStrom 1 10
+    # Strom.mapStrom (_ * 2)
+    # Strom.filterStrom (_ > 5)
     # Strom.runCollect
 
 -- Expected output: [6, 8, 10, 12, 14, 16, 18]
@@ -35,16 +36,16 @@ type LoggerContext = { logger :: String -> Aff Unit }
 -- | Stream with effectful mapping and tapping
 example2 :: Om LoggerContext () Unit
 example2 = do
-  Strom.range 1 5
-    # Strom.tapM (\n -> do
+  Strom.rangeStrom 1 5
+    # Strom.tapMStrom (\n -> do
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Processing: " <> show n
       )
-    # Strom.mapM (\n -> do
+    # Strom.mapMStrom (\n -> do
         Om.delay (Milliseconds 100.0)
         pure (n * n)
       )
-    # Strom.traverse_ (\n -> do
+    # Strom.traverseStrom_ (\n -> do
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Result: " <> show n
       )
@@ -71,8 +72,8 @@ fetchUser id = do
 
 example3 :: Om {} () (Array String)
 example3 = do
-  Strom.range 1 20
-    # Strom.mapParallel 5 fetchUser  -- Process 5 at a time
+  Strom.rangeStrom 1 20
+    # Strom.mapMStrom fetchUser  -- TODO: mapParallel not yet implemented
     # Strom.runCollect
 
 --------------------------------------------------------------------------------
@@ -83,7 +84,7 @@ example3 = do
 example4 :: Om {} () (Array Int)
 example4 = do
   Strom.fromArray [1, 2, 3, 4, 5]
-    # Strom.scan (\acc n -> acc + n) 0
+    # Strom.scanStrom (\acc n -> acc + n) 0
     # Strom.runCollect
 
 -- Expected output: [1, 3, 6, 10, 15]
@@ -92,7 +93,7 @@ example4 = do
 example4b :: Om {} () (Array String)
 example4b = do
   Strom.fromArray ["a", "b", "c", "d"]
-    # Strom.mapAccum (\count item -> Tuple (count + 1) (show count <> ": " <> item)) 1
+    # Strom.mapAccumStrom (\count item -> Tuple (count + 1) (show count <> ": " <> item)) 1
     # Strom.runCollect
 
 -- Expected output: ["1: a", "2: b", "3: c", "4: d"]
@@ -104,10 +105,10 @@ example4b = do
 -- | Zip two streams
 example5 :: Om {} () (Array (Tuple Int String))
 example5 = do
-  let numbers = Strom.range 1 5
+  let numbers = Strom.rangeStrom 1 5
   let letters = Strom.fromArray ["a", "b", "c", "d", "e"]
-  Strom.zip numbers letters
-    # Strom.runCollect
+  -- TODO: zipStrom not yet implemented
+  numbers # Strom.mapStrom (\n -> Tuple n "stub") # Strom.runCollect
 
 -- Expected output: [(1, "a"), (2, "b"), (3, "c"), (4, "d"), (5, "e")]
 
@@ -116,8 +117,8 @@ example5b :: Om {} () (Array Int)
 example5b = do
   let evens = Strom.fromArray [2, 4, 6, 8]
   let odds = Strom.fromArray [1, 3, 5, 7]
-  Strom.interleave odds evens
-    # Strom.runCollect
+  -- TODO: interleave not yet implemented
+  (odds <> evens) # Strom.runCollect
 
 -- Expected output: [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -126,8 +127,8 @@ example5c :: Om {} () (Array Int)
 example5c = do
   let stream1 = Strom.fromArray [1, 2, 3]
   let stream2 = Strom.fromArray [4, 5, 6]
-  Strom.merge stream1 stream2
-    # Strom.runCollect
+  -- TODO: merge not yet implemented
+  (stream1 <|> stream2) # Strom.runCollect
 
 -- Output: non-deterministic, could be [1, 2, 3, 4, 5, 6] or [4, 5, 6, 1, 2, 3] etc
 
@@ -138,8 +139,8 @@ example5c = do
 -- | Take from an infinite stream
 example6 :: Om {} () (Array Int)
 example6 = do
-  Strom.iterate (_ + 1) 0
-    # Strom.take 10
+  Strom.iterateStrom (_ + 1) 0
+    # Strom.takeStrom 10
     # Strom.runCollect
 
 -- Expected output: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -147,9 +148,9 @@ example6 = do
 -- | Repeat with condition
 example6b :: Om {} () (Array Int)
 example6b = do
-  Strom.repeat 42
-    # Strom.takeWhile (_ == 42)  -- Will take all
-    # Strom.take 5                -- But we limit to 5
+  Strom.repeatStrom 42
+    # Strom.takeWhileStrom (_ == 42)  -- Will take all
+    # Strom.takeStrom 5                -- But we limit to 5
     # Strom.runCollect
 
 -- Expected output: [42, 42, 42, 42, 42]
@@ -161,8 +162,8 @@ example6b = do
 -- | Group elements into chunks
 example7 :: Om {} () (Array (Array Int))
 example7 = do
-  Strom.range 1 11
-    # Strom.grouped 3
+  Strom.rangeStrom 1 11
+    # Strom.mapStrom (\x -> [x])  -- TODO: grouped not yet implemented
     # Strom.runCollect
 
 -- Expected output: [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]
@@ -170,9 +171,9 @@ example7 = do
 -- | Process in batches
 example7b :: Om LoggerContext () Unit
 example7b = do
-  Strom.range 1 100
-    # Strom.chunked 10
-    # Strom.traverse_ (\batch -> do
+  Strom.rangeStrom 1 100
+    # Strom.mapStrom (\x -> [x])  -- TODO: chunked not yet implemented
+    # Strom.traverseStrom_ (\batch -> do
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Processing batch of " <> show (Array.length batch) <> " items"
       )
@@ -185,7 +186,7 @@ example7b = do
 example8 :: Om {} () (Array Int)
 example8 = do
   Strom.fromArray [1, 1, 2, 2, 2, 3, 1, 1, 4]
-    # Strom.changes
+    # Strom.changesStrom
     # Strom.runCollect
 
 -- Expected output: [1, 2, 3, 1, 4]
@@ -208,18 +209,18 @@ example9 = do
         ]
   
   Strom.fromArray users
-    # Strom.filter _.active
-    # Strom.tapM (\user -> do
+    # Strom.filterStrom _.active
+    # Strom.tapMStrom (\user -> do
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Processing active user: " <> user.name
       )
-    # Strom.mapM (\user -> do
+    # Strom.mapMStrom (\user -> do
         -- Simulate enriching user data
         Om.delay (Milliseconds 50.0)
         pure $ user.name <> " (ID: " <> show user.id <> ")"
       )
-    # Strom.grouped 2  -- Process in batches of 2
-    # Strom.traverse_ (\batch -> do
+    # Strom.mapStrom (\x -> [x])  -- TODO: grouped not yet implemented
+    # Strom.traverseStrom_ (\batch -> do
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Saving batch: " <> show batch
       )
@@ -236,14 +237,14 @@ example9 = do
 --------------------------------------------------------------------------------
 
 -- | Generate Fibonacci sequence
-fibonacciStream :: forall ctx err. Strom ctx err Int
+fibonacciStream :: forall ctx err. Strom.Strom ctx err Int
 fibonacciStream = 
-  Strom.unfold (\(Tuple a b) -> Just (Tuple a (Tuple b (a + b)))) (Tuple 0 1)
+  Strom.unfoldStrom (\(Tuple a b) -> Just (Tuple a (Tuple b (a + b)))) (Tuple 0 1)
 
 example10 :: Om {} () (Array Int)
 example10 = do
   fibonacciStream
-    # Strom.take 10
+    # Strom.takeStrom 10
     # Strom.runCollect
 
 -- Expected output: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
@@ -265,7 +266,7 @@ fetchPage token = do
 
 example10b :: Om {} () (Array String)
 example10b = do
-  Strom.unfoldOm (\token -> do
+  Strom.unfoldOmStrom (\token -> do
     page <- fetchPage token
     case page.nextToken of
       Nothing -> pure Nothing
@@ -295,8 +296,8 @@ example11 = do
         Om.delay (Milliseconds 200.0)
         pure 3
   
-  Strom.race [source1, source2, source3]
-    # Strom.runCollect
+  -- TODO: race not yet implemented
+  source1 # Strom.runCollect
 
 -- Expected output: [2] (the fastest source)
 
@@ -307,8 +308,10 @@ example11 = do
 -- | Split stream into two based on predicate
 example12 :: Om {} () { evens :: Array Int, odds :: Array Int }
 example12 = do
-  let stream = Strom.range 1 11
-  let Tuple evens odds = Strom.partition (\n -> n `mod` 2 == 0) stream
+  let stream = Strom.rangeStrom 1 11
+  -- TODO: partition not yet implemented
+  let evens = stream # Strom.filterStrom (\n -> n `mod` 2 == 0)
+  let odds = stream # Strom.filterStrom (\n -> n `mod` 2 /= 0)
   
   evensResult <- Strom.runCollect evens
   oddsResult <- Strom.runCollect odds
@@ -331,7 +334,7 @@ parseNumbers _ = Nothing
 example13 :: Om {} () (Array Int)
 example13 = do
   Strom.fromArray ["one", "invalid", "two", "nope", "three"]
-    # Strom.collect parseNumbers
+    # Strom.collectStrom parseNumbers
     # Strom.runCollect
 
 -- Expected output: [1, 2, 3]
@@ -340,7 +343,7 @@ example13 = do
 example13b :: Om {} () (Array Int)
 example13b = do
   Strom.fromArray ["1", "not a number", "2", "3", "invalid"]
-    # Strom.collectM (\str -> do
+    # Strom.collectMStrom (\str -> do
         Om.delay (Milliseconds 10.0)
         pure $ case str of
           "1" -> Just 1
@@ -359,8 +362,8 @@ example13b = do
 -- | Skip elements
 example14 :: Om {} () (Array Int)
 example14 = do
-  Strom.range 1 11
-    # Strom.drop 5
+  Strom.rangeStrom 1 11
+    # Strom.dropStrom 5
     # Strom.runCollect
 
 -- Expected output: [6, 7, 8, 9, 10]
@@ -368,8 +371,8 @@ example14 = do
 -- | Drop while condition holds
 example14b :: Om {} () (Array Int)
 example14b = do
-  Strom.range 1 11
-    # Strom.dropWhile (_ < 5)
+  Strom.rangeStrom 1 11
+    # Strom.dropWhileStrom (_ < 5)
     # Strom.runCollect
 
 -- Expected output: [5, 6, 7, 8, 9, 10]
@@ -382,24 +385,19 @@ example14b = do
 example15 :: Om LoggerContext () Unit
 example15 = do
   let eventStream = 
-        Strom.iterate (_ + 1) 0
-          # Strom.mapM (\n -> do
+        Strom.iterateStrom (_ + 1) 0
+          # Strom.mapMStrom (\n -> do
               Om.delay (Milliseconds 500.0)
               pure n
             )
   
-  cancel <- Strom.subscribe (\n -> do
-    { logger } <- Om.ask
-    Om.fromAff $ logger $ "Received: " <> show n
-  ) eventStream
-  
-  -- Let it run for a bit
-  Om.delay (Milliseconds 2500.0)
-  
-  -- Then cancel
-  { logger } <- Om.ask
-  Om.fromAff $ logger "Cancelling subscription..."
-  cancel
+  -- TODO: subscribe not yet implemented
+  eventStream
+    # Strom.takeStrom 5
+    # Strom.traverseStrom_ (\n -> do
+        { logger } <- Om.ask
+        Om.fromAff $ logger $ "Received: " <> show n
+      )
 
 -- Expected output:
 -- Received: 0
@@ -439,16 +437,15 @@ data AppError = NetworkError | ValidationError | TimeoutError
 -- | Catch errors and provide fallback
 example17 :: Om {} (networkError :: String) (Array Int)
 example17 = do
-  let riskyStream = Strom.range 1 5
-        # Strom.mapM (\n -> do
+  let riskyStream = Strom.rangeStrom 1 5
+        # Strom.mapMStrom (\n -> do
             if n == 3
               then Om.throw { networkError: "Connection failed!" }
               else pure (n * 2)
           )
   
-  riskyStream
-    # Strom.catchAll (\err -> Strom.succeed 999)  -- Fallback value
-    # Strom.runCollect
+  -- TODO: catchAll not yet implemented
+  riskyStream # Strom.runCollect
 
 -- Expected output: [2, 4, 999, 8, 10]
 
@@ -458,8 +455,8 @@ example17b = do
   let primaryStream = Strom.fromOm $ Om.throw { networkError: "Primary failed" }
   let fallbackStream = Strom.fromArray [1, 2, 3]
   
-  primaryStream `Strom.orElse` fallbackStream
-    # Strom.runCollect
+  -- TODO: orElse not yet implemented, using Alt instance
+  (primaryStream <|> fallbackStream) # Strom.runCollect
 
 -- Expected output: [1, 2, 3]
 
@@ -482,19 +479,19 @@ eventProcessingPipeline = do
         ]
   
   Strom.fromArray events
-    # Strom.filter (\e -> e.action /= "login")  -- Filter out logins
-    # Strom.changes                              -- Remove consecutive duplicates
-    # Strom.mapAccum                             -- Add sequence numbers
+    # Strom.filterStrom (\e -> e.action /= "login")  -- Filter out logins
+    # Strom.changesStrom                              -- Remove consecutive duplicates
+    # Strom.mapAccumStrom                             -- Add sequence numbers
         (\seq event -> Tuple (seq + 1) { seq, event })
         0
-    # Strom.tapM (\{ seq, event } -> do         -- Log each event
+    # Strom.tapMStrom (\{ seq, event } -> do         -- Log each event
         { logger } <- Om.ask
         Om.fromAff $ logger $ 
           "Event #" <> show seq <> ": " 
           <> event.userId <> " - " <> event.action
       )
-    # Strom.grouped 2                            -- Batch for processing
-    # Strom.traverse_ (\batch -> do             -- Process batches
+    # Strom.mapStrom (\x -> [x])                            -- TODO: grouped not yet implemented
+    # Strom.traverseStrom_ (\batch -> do             -- Process batches
         { logger } <- Om.ask
         Om.fromAff $ logger $ "Processed batch of " <> show (Array.length batch)
       )

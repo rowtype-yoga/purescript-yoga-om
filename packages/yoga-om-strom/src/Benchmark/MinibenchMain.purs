@@ -112,19 +112,40 @@ main = launchAff_ do
         # Strom.takeStrom 5000
         # Strom.runDrain
 
-  -- Non-deterministic merge
-  benchAff "mergeND-2x1M" 10 do
+  -- Non-deterministic merge (note: has async overhead per chunk)
+  benchAff "mergeND-2x1M-pure" 10 do
     runOm $
       Strom.mergeND
         (Strom.rangeStrom 1 1000001)
         (Strom.rangeStrom 1000001 2000001)
         # Strom.runDrain
 
-  -- Parallel map with concurrency
-  benchAff "mapPar-concurrency4-5k" 10 do
+  -- Non-deterministic merge with actual async work (realistic use case)
+  benchAff "mergeND-2x100-with-delay" 10 do
+    runOm $
+      Strom.mergeND
+        (Strom.rangeStrom 1 101 # Strom.mapMStrom (\n -> do
+          Om.delay (Milliseconds 1.0)
+          pure n))
+        (Strom.rangeStrom 101 201 # Strom.mapMStrom (\n -> do
+          Om.delay (Milliseconds 1.0)
+          pure n))
+        # Strom.runDrain
+
+  -- Parallel map with pure function (shows coordination overhead)
+  benchAff "mapPar-concurrency4-5k-pure" 10 do
     runOm $
       Strom.rangeStrom 1 5001
         # Strom.mapPar 4 (\n -> pure (n * 2))
+        # Strom.runDrain
+
+  -- Parallel map with actual async work (realistic use case)
+  benchAff "mapPar-concurrency4-100-with-delay" 10 do
+    runOm $
+      Strom.rangeStrom 1 101
+        # Strom.mapPar 4 (\n -> do
+          Om.delay (Milliseconds 10.0)
+          pure (n * 2))
         # Strom.runDrain
 
   -- Scan operation (stateful)
@@ -199,7 +220,7 @@ main = launchAff_ do
 
   benchAff "changes-50k" 10 do
     runOm $
-      Strom.fromArray (Array.replicate 50000 1 <> [2])
+      Strom.fromArray (Array.replicate 50000 1 <> [ 2 ])
         # Strom.changesStrom
         # Strom.runDrain
 

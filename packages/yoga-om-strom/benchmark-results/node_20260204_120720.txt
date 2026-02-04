@@ -1,0 +1,91 @@
+🚀 Running benchmarks on Node.js v25.2.1
+============================================================
+🔥 Strom Performance Benchmark Suite
+=====================================
+
+
+🏃 map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 filter-2M-50pct (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 map-chain-3x-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 pipeline-map-filter-map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 fold-sum-1M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.1 ms
+  max:    1.0 ms
+
+🏃 collect-50k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 take-5k-from-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 mergeND-2x1M (runs: 10)
+  min:    135.0 ms
+  median: 168.0 ms
+  mean:   183.8 ms
+  max:    354.0 ms
+
+🏃 mapPar-concurrency4-5k (runs: 10)
+  min:    219.0 ms
+  median: 397.0 ms
+  mean:   461.4 ms
+  max:    1299.0 ms
+
+🏃 scan-running-sum-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 unfold-10k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 infinite-iterate-take-10k (runs: 10)
+  min:    3.0 ms
+  median: 7.0 ms
+  mean:   6.6 ms
+  max:    13.0 ms
+
+🏃 bind-5kx10 (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 zip-2x500k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+✨ Benchmark suite complete!

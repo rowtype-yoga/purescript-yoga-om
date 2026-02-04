@@ -1,8 +1,21 @@
-module Yoga.Om.Layer where
+-- @inline export makeLayer arity=1
+-- @inline export runLayer arity=2
+module Yoga.Om.Layer 
+  ( OmLayer(..)
+  , makeLayer
+  , runLayer
+  , combineRequirements
+  , provide
+  , (>->)
+  , class CheckAllProvided
+  , class CheckAllLabelsExist
+  , class CheckLabelExists
+  ) where
 
 import Prelude
 
 import Data.Newtype (class Newtype)
+import Effect.Aff.Class (liftAff)
 import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList, Cons, Nil, RowList)
 import Prim.TypeError (class Fail, Above, Quote, Text)
@@ -153,3 +166,41 @@ combineRequirements (OmLayer build1) (OmLayer build2) = makeLayer do
 --
 -- The duplicated requirement (config, config) is automatically
 -- deduplicated to just (config) by the Nub constraint!
+
+-- =============================================================================
+-- Vertical Composition (ZLayer-style provide)
+-- =============================================================================
+
+-- | Vertical composition: feed output of one layer into input of another
+-- | This is the >>> operator from ZIO ZLayer
+-- | 
+-- | Example:
+-- |   postgresLive :: OmLayer (config :: Config) (postgres :: SQL) ()
+-- |   userRepoLive :: OmLayer (postgres :: SQL) (userRepo :: UserRepo) ()
+-- |   
+-- |   composed = userRepoLive `provide` postgresLive
+-- |   -- Result: OmLayer (config :: Config) (userRepo :: UserRepo) ()
+provide
+  :: forall req prov1 prov2 err1 err2 _req _prov1 _err1 _err2
+   . Union req _req req            -- expand constraints
+  => Union prov1 _prov1 prov1
+  => Union err1 _err1 ()
+  => Union err2 _err2 ()
+  => Keys req
+  => Keys prov1
+  => OmLayer prov1 prov2 err2     -- layer that needs prov1, provides prov2
+  -> OmLayer req prov1 err1       -- layer that needs req, provides prov1
+  -> OmLayer req prov2 ()         -- composed: needs req, provides prov2
+provide (OmLayer layer2) (OmLayer layer1) = makeLayer do
+  -- Run first layer to get prov1
+  prov1 <- Om.expand layer1
+  
+  -- Run second layer with prov1 as context
+  liftAff $ Om.runOm prov1
+    { exception: \_ -> pure (unsafeCoerce {}) }
+    (Om.expand layer2)
+
+infixl 9 provide as >->
+
+-- TODO: More sophisticated composition operators
+-- For now, use >>> for simple chains and combineRequirements for parallel deps

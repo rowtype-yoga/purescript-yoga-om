@@ -1,0 +1,14 @@
+import * as Data$dMaybe from "../Data.Maybe/index.js";
+import * as Data$dNullable from "../Data.Nullable/index.js";
+import * as Unsafe$dCoerce from "../Unsafe.Coerce/index.js";
+import * as Web$dInternal$dFFI from "../Web.Internal.FFI/index.js";
+import * as Web$dUIEvent$dInputEvent$dInputType from "../Web.UIEvent.InputEvent.InputType/index.js";
+import {_data_, _inputType, isComposing} from "./foreign.js";
+const toUIEvent = Unsafe$dCoerce.unsafeCoerce;
+const toEvent = Unsafe$dCoerce.unsafeCoerce;
+const inputType = x => Web$dUIEvent$dInputEvent$dInputType.parse(_inputType(x));
+const fromUIEvent = /* #__PURE__ */ Web$dInternal$dFFI.unsafeReadProtoTagged("InputEvent");
+const fromEvent = /* #__PURE__ */ Web$dInternal$dFFI.unsafeReadProtoTagged("InputEvent");
+const data_ = x => Data$dNullable.nullable(_data_(x), Data$dMaybe.Nothing, Data$dMaybe.Just);
+export {data_, fromEvent, fromUIEvent, inputType, toEvent, toUIEvent};
+export * from "./foreign.js";

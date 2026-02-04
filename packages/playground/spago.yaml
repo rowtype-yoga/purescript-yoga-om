@@ -1,0 +1,8 @@
+package:
+  name: playground
+  dependencies:
+    - yoga-om-layer
+    - prelude: ">=6.0.0 <7.0.0"
+    - effect: ">=4.0.0 <5.0.0"
+    - console: ">=6.0.0 <7.0.0"
+    - aff: ">=7.0.0 <8.0.0"

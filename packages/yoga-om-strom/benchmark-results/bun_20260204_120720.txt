@@ -1,0 +1,91 @@
+🚀 Running benchmarks on Bun 1.2.21
+============================================================
+🔥 Strom Performance Benchmark Suite
+=====================================
+
+
+🏃 map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 filter-2M-50pct (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 map-chain-3x-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 pipeline-map-filter-map-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 fold-sum-1M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 collect-50k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 take-5k-from-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 mergeND-2x1M (runs: 10)
+  min:    29.0 ms
+  median: 41.0 ms
+  mean:   88.5 ms
+  max:    444.0 ms
+
+🏃 mapPar-concurrency4-5k (runs: 10)
+  min:    46.0 ms
+  median: 58.0 ms
+  mean:   57.9 ms
+  max:    73.0 ms
+
+🏃 scan-running-sum-2M (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 unfold-10k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 infinite-iterate-take-10k (runs: 10)
+  min:    1.0 ms
+  median: 2.0 ms
+  mean:   2.8 ms
+  max:    13.0 ms
+
+🏃 bind-5kx10 (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+🏃 zip-2x500k (runs: 10)
+  min:    0.0 ms
+  median: 0.0 ms
+  mean:   0.0 ms
+  max:    0.0 ms
+
+✨ Benchmark suite complete!
