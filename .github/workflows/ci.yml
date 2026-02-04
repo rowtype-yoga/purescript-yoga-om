@@ -1,65 +1,21 @@
 name: CI
 
-on: 
+on:
   push:
-    branches: [main, feature/*]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-
-      - uses: purescript-contrib/setup-purescript@main
-        with:
-          purescript: "0.15.15"
-          spago: "0.93.45"
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Cache PureScript dependencies
-        uses: actions/cache@v4
-        # This cache uses the spago.yaml files to know when it should reinstall
-        # and rebuild packages. It caches both the installed packages from
-        # the `.spago` directory and compilation artifacts from the `output`
-        # directory. When restored the compiler will rebuild any files that
-        # have changed.
-        with:
-          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.yaml') }}-${{ hashFiles('bun.lock') }}
-          path: |
-            .spago
-            output
-
-      - name: Build all workspace packages
+      - uses: rowtype-yoga/purescript-yoga-actions/.github/actions/setup@main
+      
+      - name: Build all packages
         run: spago build
-
-      - name: Build yoga-om-core
-        run: spago build -p yoga-om-core
-
-      - name: Build yoga-om-node
-        run: spago build -p yoga-om-node
-
-      - name: Build yoga-om-rom
-        run: spago build -p yoga-om-rom
-
-      - name: Build yoga-om-strom
-        run: spago build -p yoga-om-strom
-
-      - name: Test yoga-om-core
-        run: cd packages/yoga-om-core && spago test
-
-      - name: Test yoga-om-node
-        run: cd packages/yoga-om-node && spago test
-
-      - name: Test yoga-om-rom
-        run: cd packages/yoga-om-rom && spago test
-
-      - name: Test yoga-om-strom
-        run: cd packages/yoga-om-strom && spago test
+      
+      - name: Test all packages
+        run: spago test
