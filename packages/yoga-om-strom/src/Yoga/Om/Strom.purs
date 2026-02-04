@@ -239,7 +239,7 @@ iterateStrom f initial = iterateHelper initial 0
     | count >= maxIterations = empty
     | otherwise = mkStrom do
         let
-          chunkSize = 100
+          chunkSize = 10000
           remaining = min chunkSize (maxIterations - count)
           result = buildChunk current remaining
           chunk = result.arr
@@ -327,7 +327,7 @@ unfoldStrom :: forall ctx err a b. (b -> Maybe (Tuple a b)) -> b -> Strom ctx er
 unfoldStrom f seed = unfoldHelper seed
   where
   unfoldHelper currentSeed = mkStrom do
-    let chunk = buildChunk currentSeed 100
+    let chunk = buildChunk currentSeed 10000
     case chunk.finalSeed of
       Nothing -> pure $ Done $ if Array.null chunk.values then Nothing else Just chunk.values
       Just nextSeed ->
