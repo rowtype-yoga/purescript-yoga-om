@@ -109,7 +109,7 @@ import Control.Plus (class Plus)
 import Data.Array as Array
 import Data.Array.ST as STArray
 import Data.Array.ST.Iterator as Iterator
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Foldable (class Foldable, foldl)
 import Data.Functor (map) as Functor
 import Data.List as List
@@ -118,8 +118,10 @@ import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant)
-import Effect.Aff (Aff, Error, delay)
+import Effect.Aff (Aff, Error, delay, forkAff, joinFiber, killFiber)
+import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (liftAff)
+import Effect.Exception as Exception
 import Effect.Now (now)
 import Effect.Class (liftEffect)
 import Data.DateTime.Instant (unInstant)
@@ -1149,47 +1151,75 @@ raceAll streams = mkStrom do
 -- | Non-deterministic merge: Merge two streams concurrently, emitting elements as soon as they're available
 -- | Unlike `merge`, this runs both streams in parallel and elements may arrive in any order
 -- | The stream that produces results faster will have its elements appear first
+-- | Optimized: Spawns producer fibers once and uses a queue for communication
 mergeND :: forall ctx err a. Strom ctx err a -> Strom ctx err a -> Strom ctx err a
-mergeND s1 s2 = mergeNDImpl s1 s2 { stream1Done: false, stream2Done: false }
-  where
-  mergeNDImpl stream1 stream2 state
-    | state.stream1Done && state.stream2Done = empty
-    | state.stream1Done = stream2
-    | state.stream2Done = stream1
-    | otherwise = mkStrom do
-        -- Race to see which stream produces first
-        result <- Om.race
-          [ Left <$> runStrom stream1
-          , Right <$> runStrom stream2
-          ]
-        case result of
-          Left step1 -> handleStep step1 stream1 stream2 state StreamId1
-          Right step2 -> handleStep step2 stream1 stream2 state StreamId2
-
-  handleStep step thisStream otherStream state streamId = case step of
-    Done Nothing -> do
-      -- This stream finished with no data
+mergeND stream1 stream2 = mkStrom do
+  -- Capture context
+  ctx <- Om.ask
+  
+  liftAff do
+    -- Create communication queue
+    queue <- AVar.empty
+    
+    -- Spawn producer fiber for stream1
+    fiber1 <- forkAff do
       let
-        newState =
-          if streamId == StreamId1 then state { stream1Done = true }
-          else state { stream2Done = true }
-      runStrom $ mergeNDImpl thisStream otherStream newState
-
-    Done (Just chunk) -> do
-      -- This stream finished with final chunk
+        producer s = do
+          stepResult <- Om.runReader ctx (runStrom s)
+          step <- either (\e -> throwError (Exception.error "Stream error")) pure stepResult
+          case step of
+            Done Nothing -> 
+              AVar.put (Left StreamId1) queue -- Signal stream1 done
+            Done (Just chunk) -> do
+              AVar.put (Right chunk) queue -- Emit final chunk
+              AVar.put (Left StreamId1) queue -- Signal stream1 done
+            Loop (Tuple maybeChunk next) -> do
+              case maybeChunk of
+                Just chunk -> AVar.put (Right chunk) queue
+                Nothing -> pure unit
+              producer next
+      producer stream1
+    
+    -- Spawn producer fiber for stream2
+    fiber2 <- forkAff do
       let
-        newState =
-          if streamId == StreamId1 then state { stream1Done = true }
-          else state { stream2Done = true }
-      pure $ Loop $ Tuple (Just chunk) (mergeNDImpl thisStream otherStream newState)
-
-    Loop (Tuple maybeChunk next) -> do
-      -- This stream continues
-      let nextStream1 = if streamId == StreamId1 then next else thisStream
-      let nextStream2 = if streamId == StreamId2 then next else otherStream
-      case maybeChunk of
-        Nothing -> runStrom $ mergeNDImpl nextStream1 nextStream2 state
-        Just chunk -> pure $ Loop $ Tuple (Just chunk) (mergeNDImpl nextStream1 nextStream2 state)
+        producer s = do
+          stepResult <- Om.runReader ctx (runStrom s)
+          step <- either (\e -> throwError (Exception.error "Stream error")) pure stepResult
+          case step of
+            Done Nothing -> 
+              AVar.put (Left StreamId2) queue -- Signal stream2 done
+            Done (Just chunk) -> do
+              AVar.put (Right chunk) queue -- Emit final chunk
+              AVar.put (Left StreamId2) queue -- Signal stream2 done
+            Loop (Tuple maybeChunk next) -> do
+              case maybeChunk of
+                Just chunk -> AVar.put (Right chunk) queue
+                Nothing -> pure unit
+              producer next
+      producer stream2
+    
+    -- Consumer: pull from queue
+    let
+      consumer doneCount = mkStrom $ liftAff do
+        if doneCount >= 2 then do
+          -- Both streams done, cleanup
+          killFiber (Exception.error "done") fiber1
+          killFiber (Exception.error "done") fiber2
+          pure $ Done Nothing
+        else do
+          msg <- AVar.take queue
+          case msg of
+            Left _streamId -> do
+              -- One stream finished, recurse
+              stepResult <- Om.runReader ctx (runStrom $ consumer (doneCount + 1))
+              either (\_ -> throwError (Exception.error "Consumer error")) pure stepResult
+            Right chunk -> 
+              -- Got a chunk
+              pure $ Loop $ Tuple (Just chunk) (consumer doneCount)
+    
+    stepResult <- Om.runReader ctx (runStrom $ consumer 0)
+    either (\_ -> throwError (Exception.error "Consumer init error")) pure stepResult
 
 -- | Non-deterministic merge of multiple streams
 -- | All streams run concurrently and emit elements as soon as they're available

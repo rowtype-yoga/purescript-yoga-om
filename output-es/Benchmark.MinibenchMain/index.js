@@ -1,6 +1,7 @@
 import * as $runtime from "../runtime.js";
 import * as Control$dMonad$dRec$dClass from "../Control.Monad.Rec.Class/index.js";
 import * as Data$dArray from "../Data.Array/index.js";
+import * as Data$dEither from "../Data.Either/index.js";
 import * as Data$dEq from "../Data.Eq/index.js";
 import * as Data$dEuclideanRing from "../Data.EuclideanRing/index.js";
 import * as Data$dFoldable from "../Data.Foldable/index.js";
@@ -544,7 +545,7 @@ const main = /* #__PURE__ */ (() => {
           return rangeHelper(1)(2000001);
         })());
       })()
-    )))))(() => Effect$dAff._bind(benchAff("mergeND-2x1M")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
+    )))))(() => Effect$dAff._bind(benchAff("mergeND-2x1M-pure")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
       const $0 = v._1;
       return Yoga$dOm.bindOm.bind(v._2.pull)(step => {
         if (step.tag === "Done") {
@@ -590,7 +591,61 @@ const main = /* #__PURE__ */ (() => {
         };
         return rangeHelper(1000001)(2000001);
       })())
-    )))))(() => Effect$dAff._bind(benchAff("mapPar-concurrency4-5k")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
+    )))))(() => Effect$dAff._bind(benchAff("mergeND-2x100-with-delay")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
+      const $0 = v._1;
+      return Yoga$dOm.bindOm.bind(v._2.pull)(step => {
+        if (step.tag === "Done") {
+          if (step._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", $0)); }
+          if (step._1.tag === "Just") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dFoldable.foldlArray(v$1 => v1 => {})($0)(step._1._1))); }
+          $runtime.fail();
+        }
+        if (step.tag === "Loop") {
+          if (step._1._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple($0, step._1._2))); }
+          if (step._1._1.tag === "Just") {
+            return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
+              "Loop",
+              Data$dTuple.$Tuple(Data$dFoldable.foldlArray(v$1 => v1 => {})($0)(step._1._1._1), step._1._2)
+            ));
+          }
+        }
+        $runtime.fail();
+      });
+    })(Data$dTuple.$Tuple(
+      undefined,
+      Yoga$dOm$dStrom.mergeND(Yoga$dOm$dStrom.mapMStrom(n => Yoga$dOm.bindOm.bind(Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._delay(Data$dEither.Right, 1.0))))(v2 => {
+        if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+        if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+        $runtime.fail();
+      }))(() => Yoga$dOm.applicativeOm.pure(n)))((() => {
+        const rangeHelper = current => limit => {
+          if (current >= limit) { return Yoga$dOm$dStrom.empty; }
+          const chunkEnd = Yoga$dOm$dStrom.min(current + 1000 | 0)(limit);
+          const $0 = Data$dArray.rangeImpl(current, chunkEnd - 1 | 0);
+          return {
+            pull: chunkEnd >= limit
+              ? Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dMaybe.$Maybe("Just", $0)))
+              : Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple(Data$dMaybe.$Maybe("Just", $0), rangeHelper(chunkEnd)(limit))))
+          };
+        };
+        return rangeHelper(1)(101);
+      })()))(Yoga$dOm$dStrom.mapMStrom(n => Yoga$dOm.bindOm.bind(Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._delay(Data$dEither.Right, 1.0))))(v2 => {
+        if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+        if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+        $runtime.fail();
+      }))(() => Yoga$dOm.applicativeOm.pure(n)))((() => {
+        const rangeHelper = current => limit => {
+          if (current >= limit) { return Yoga$dOm$dStrom.empty; }
+          const chunkEnd = Yoga$dOm$dStrom.min(current + 1000 | 0)(limit);
+          const $0 = Data$dArray.rangeImpl(current, chunkEnd - 1 | 0);
+          return {
+            pull: chunkEnd >= limit
+              ? Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dMaybe.$Maybe("Just", $0)))
+              : Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple(Data$dMaybe.$Maybe("Just", $0), rangeHelper(chunkEnd)(limit))))
+          };
+        };
+        return rangeHelper(101)(201);
+      })()))
+    )))))(() => Effect$dAff._bind(benchAff("mapPar-concurrency4-5k-pure")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
       const $0 = v._1;
       return Yoga$dOm.bindOm.bind(v._2.pull)(step => {
         if (step.tag === "Done") {
@@ -657,6 +712,100 @@ const main = /* #__PURE__ */ (() => {
               })())(mappedChunk => Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
                 "Loop",
                 Data$dTuple.$Tuple(mappedChunk, Yoga$dOm$dStrom.mapPar(4)(n => Yoga$dOm.applicativeOm.pure(n * 2 | 0))($0))
+              )));
+            }
+            $runtime.fail();
+          })
+        };
+      })()
+    )))))(() => Effect$dAff._bind(benchAff("mapPar-concurrency4-100-with-delay")(10)(runOm(Yoga$dOm.monadRecOm.tailRecM(v => {
+      const $0 = v._1;
+      return Yoga$dOm.bindOm.bind(v._2.pull)(step => {
+        if (step.tag === "Done") {
+          if (step._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", $0)); }
+          if (step._1.tag === "Just") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dFoldable.foldlArray(v$1 => v1 => {})($0)(step._1._1))); }
+          $runtime.fail();
+        }
+        if (step.tag === "Loop") {
+          if (step._1._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple($0, step._1._2))); }
+          if (step._1._1.tag === "Just") {
+            return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
+              "Loop",
+              Data$dTuple.$Tuple(Data$dFoldable.foldlArray(v$1 => v1 => {})($0)(step._1._1._1), step._1._2)
+            ));
+          }
+        }
+        $runtime.fail();
+      });
+    })(Data$dTuple.$Tuple(
+      undefined,
+      (() => {
+        const chunksOf = n => arr => {
+          if (n <= 0 || arr.length === 0) { return []; }
+          const rest = n < 1 ? arr : Data$dArray.sliceImpl(n, arr.length, arr);
+          const group = n < 1 ? [] : Data$dArray.sliceImpl(0, n, arr);
+          if (group.length === 0) { return []; }
+          return [group, ...chunksOf(n)(rest)];
+        };
+        return {
+          pull: Yoga$dOm.bindOm.bind((() => {
+            const rangeHelper = current => limit => {
+              if (current >= limit) { return Yoga$dOm$dStrom.empty; }
+              const chunkEnd = Yoga$dOm$dStrom.min(current + 1000 | 0)(limit);
+              const $0 = Data$dArray.rangeImpl(current, chunkEnd - 1 | 0);
+              return {
+                pull: chunkEnd >= limit
+                  ? Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dMaybe.$Maybe("Just", $0)))
+                  : Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple(Data$dMaybe.$Maybe("Just", $0), rangeHelper(chunkEnd)(limit))))
+              };
+            };
+            return rangeHelper(1)(101).pull;
+          })())(step => {
+            if (step.tag === "Done") {
+              if (step._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step("Done", Data$dMaybe.Nothing)); }
+              if (step._1.tag === "Just") {
+                return Yoga$dOm.bindOm.bind(Yoga$dOm$dStrom.traverse(group => Yoga$dOm.inParallel(Data$dFunctor.arrayMap(n => Yoga$dOm.bindOm.bind(Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._delay(
+                  Data$dEither.Right,
+                  10.0
+                ))))(v2 => {
+                  if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+                  if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+                  $runtime.fail();
+                }))(() => Yoga$dOm.applicativeOm.pure(n * 2 | 0)))(group)))(chunksOf(4)(step._1._1)))(results => Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
+                  "Done",
+                  Data$dMaybe.$Maybe("Just", Data$dArray.concat(results))
+                )));
+              }
+              $runtime.fail();
+            }
+            if (step.tag === "Loop") {
+              const $0 = step._1._2;
+              return Yoga$dOm.bindOm.bind((() => {
+                if (step._1._1.tag === "Nothing") { return Yoga$dOm.applicativeOm.pure(Data$dMaybe.Nothing); }
+                if (step._1._1.tag === "Just") {
+                  return Yoga$dOm.bindOm.bind(Yoga$dOm$dStrom.traverse(group => Yoga$dOm.inParallel(Data$dFunctor.arrayMap(n => Yoga$dOm.bindOm.bind(Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._delay(
+                    Data$dEither.Right,
+                    10.0
+                  ))))(v2 => {
+                    if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+                    if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+                    $runtime.fail();
+                  }))(() => Yoga$dOm.applicativeOm.pure(n * 2 | 0)))(group)))(chunksOf(4)(step._1._1._1)))(results => Yoga$dOm.applicativeOm.pure(Data$dMaybe.$Maybe(
+                    "Just",
+                    Data$dArray.concat(results)
+                  )));
+                }
+                $runtime.fail();
+              })())(mappedChunk => Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
+                "Loop",
+                Data$dTuple.$Tuple(
+                  mappedChunk,
+                  Yoga$dOm$dStrom.mapPar(4)(n => Yoga$dOm.bindOm.bind(Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._delay(Data$dEither.Right, 10.0))))(v2 => {
+                    if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+                    if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+                    $runtime.fail();
+                  }))(() => Yoga$dOm.applicativeOm.pure(n * 2 | 0)))($0)
+                )
               )));
             }
             $runtime.fail();
@@ -1839,7 +1988,7 @@ const main = /* #__PURE__ */ (() => {
           return rangeHelper(1)(50001).pull;
         })())
       }
-    )))))(() => Effect$dAff._liftEffect(Effect$dConsole.log("\n✨ Benchmark suite complete!")))))))))))))))))))))))))))))))))))))))))
+    )))))(() => Effect$dAff._liftEffect(Effect$dConsole.log("\n✨ Benchmark suite complete!")))))))))))))))))))))))))))))))))))))))))))
   );
   return () => {
     const fiber = $0();

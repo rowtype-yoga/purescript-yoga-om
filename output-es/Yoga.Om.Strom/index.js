@@ -26,6 +26,8 @@ import * as Data$dOrd from "../Data.Ord/index.js";
 import * as Data$dTraversable from "../Data.Traversable/index.js";
 import * as Data$dTuple from "../Data.Tuple/index.js";
 import * as Effect$dAff from "../Effect.Aff/index.js";
+import * as Effect$dAff$dAVar from "../Effect.Aff.AVar/index.js";
+import * as Effect$dException from "../Effect.Exception/index.js";
 import * as Effect$dNow from "../Effect.Now/index.js";
 import * as Yoga$dOm from "../Yoga.Om/index.js";
 const $StreamId = tag => tag;
@@ -643,6 +645,95 @@ const semigroupStrom = {
     }
   )
 };
+const mergeND = stream1 => stream2 => (
+  {
+    pull: Yoga$dOm.bindOm.bind(Yoga$dOm.monadAskOm.ask)(ctx => Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(Effect$dAff._bind(Effect$dAff$dAVar.empty)(queue => Effect$dAff._bind(Effect$dAff.forkAff((() => {
+      const producer = s => Effect$dAff._bind(Yoga$dOm.runReader(ctx)(s.pull))(stepResult => Effect$dAff._bind((() => {
+        if (stepResult.tag === "Left") { return Effect$dAff._throwError(Effect$dException.error("Stream error")); }
+        if (stepResult.tag === "Right") { return Effect$dAff._pure(stepResult._1); }
+        $runtime.fail();
+      })())(step => {
+        if (step.tag === "Done") {
+          if (step._1.tag === "Nothing") { return Effect$dAff$dAVar.put(Data$dEither.$Either("Left", StreamId1))(queue); }
+          if (step._1.tag === "Just") {
+            return Effect$dAff._bind(Effect$dAff$dAVar.put(Data$dEither.$Either("Right", step._1._1))(queue))(() => Effect$dAff$dAVar.put(Data$dEither.$Either("Left", StreamId1))(queue));
+          }
+          $runtime.fail();
+        }
+        if (step.tag === "Loop") {
+          const $0 = step._1._2;
+          return Effect$dAff._bind((() => {
+            if (step._1._1.tag === "Just") { return Effect$dAff$dAVar.put(Data$dEither.$Either("Right", step._1._1._1))(queue); }
+            if (step._1._1.tag === "Nothing") { return Effect$dAff._pure(); }
+            $runtime.fail();
+          })())(() => producer($0));
+        }
+        $runtime.fail();
+      }));
+      return producer(stream1);
+    })()))(fiber1 => Effect$dAff._bind(Effect$dAff.forkAff((() => {
+      const producer = s => Effect$dAff._bind(Yoga$dOm.runReader(ctx)(s.pull))(stepResult => Effect$dAff._bind((() => {
+        if (stepResult.tag === "Left") { return Effect$dAff._throwError(Effect$dException.error("Stream error")); }
+        if (stepResult.tag === "Right") { return Effect$dAff._pure(stepResult._1); }
+        $runtime.fail();
+      })())(step => {
+        if (step.tag === "Done") {
+          if (step._1.tag === "Nothing") { return Effect$dAff$dAVar.put(Data$dEither.$Either("Left", StreamId2))(queue); }
+          if (step._1.tag === "Just") {
+            return Effect$dAff._bind(Effect$dAff$dAVar.put(Data$dEither.$Either("Right", step._1._1))(queue))(() => Effect$dAff$dAVar.put(Data$dEither.$Either("Left", StreamId2))(queue));
+          }
+          $runtime.fail();
+        }
+        if (step.tag === "Loop") {
+          const $0 = step._1._2;
+          return Effect$dAff._bind((() => {
+            if (step._1._1.tag === "Just") { return Effect$dAff$dAVar.put(Data$dEither.$Either("Right", step._1._1._1))(queue); }
+            if (step._1._1.tag === "Nothing") { return Effect$dAff._pure(); }
+            $runtime.fail();
+          })())(() => producer($0));
+        }
+        $runtime.fail();
+      }));
+      return producer(stream2);
+    })()))(fiber2 => {
+      const consumer = doneCount => (
+        {
+          pull: Yoga$dOm.bindOm.bind(Yoga$dOm.lift(Yoga$dOm.try(doneCount >= 2
+            ? Effect$dAff._bind(Effect$dAff.killFiber(Effect$dException.error("done"))(fiber1))(() => Effect$dAff._bind(Effect$dAff.killFiber(Effect$dException.error("done"))(fiber2))(() => Effect$dAff._pure(Control$dMonad$dRec$dClass.$Step(
+                "Done",
+                Data$dMaybe.Nothing
+              ))))
+            : Effect$dAff._bind(Effect$dAff$dAVar.take(queue))(msg => {
+                if (msg.tag === "Left") {
+                  return Effect$dAff._bind(Yoga$dOm.runReader(ctx)(consumer(doneCount + 1 | 0).pull))(stepResult => {
+                    if (stepResult.tag === "Left") { return Effect$dAff._throwError(Effect$dException.error("Consumer error")); }
+                    if (stepResult.tag === "Right") { return Effect$dAff._pure(stepResult._1); }
+                    $runtime.fail();
+                  });
+                }
+                if (msg.tag === "Right") {
+                  return Effect$dAff._pure(Control$dMonad$dRec$dClass.$Step("Loop", Data$dTuple.$Tuple(Data$dMaybe.$Maybe("Just", msg._1), consumer(doneCount))));
+                }
+                $runtime.fail();
+              }))))(v2 => {
+            if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+            if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+            $runtime.fail();
+          })
+        }
+      );
+      return Effect$dAff._bind(Yoga$dOm.runReader(ctx)(consumer(0).pull))(stepResult => {
+        if (stepResult.tag === "Left") { return Effect$dAff._throwError(Effect$dException.error("Consumer init error")); }
+        if (stepResult.tag === "Right") { return Effect$dAff._pure(stepResult._1); }
+        $runtime.fail();
+      });
+    }))))))(v2 => {
+      if (v2.tag === "Left") { return Yoga$dOm.monadThrowVariantExceptio.throwError(Yoga$dOm.singletonVariantRecord.singletonRecordToVariant({exception: v2._1})); }
+      if (v2.tag === "Right") { return Yoga$dOm.applicativeOm.pure(v2._1); }
+      $runtime.fail();
+    }))
+  }
+);
 const merge = s1 => s2 => (
   {
     pull: Yoga$dOm.bindOm.bind(s1.pull)(step1 => Yoga$dOm.bindOm.bind(s2.pull)(step2 => {
@@ -1373,65 +1464,6 @@ const groupedStrom = size => stream => {
   return groupedHelper([])(stream);
 };
 const mergeAll = streams => Data$dFoldable.foldlArray(merge)(empty)(streams);
-const mergeND = s1 => s2 => {
-  const mergeNDImpl = stream1 => stream2 => state => {
-    if (state.stream1Done && state.stream2Done) { return empty; }
-    if (state.stream1Done) { return stream2; }
-    if (state.stream2Done) { return stream1; }
-    return {
-      pull: Yoga$dOm.bindOm.bind(Yoga$dOm.race([
-        (environment, state0, more, lift$p, error, done) => more(v1 => stream1.pull(
-          environment,
-          state0,
-          more,
-          lift$p,
-          error,
-          (state1, a, w) => more(v2 => done(state1, Data$dEither.$Either("Left", a), w))
-        )),
-        (environment, state0, more, lift$p, error, done) => more(v1 => stream2.pull(
-          environment,
-          state0,
-          more,
-          lift$p,
-          error,
-          (state1, a, w) => more(v2 => done(state1, Data$dEither.$Either("Right", a), w))
-        ))
-      ]))(result => {
-        if (result.tag === "Left") { return handleStep(result._1)(stream1)(stream2)(state)(StreamId1); }
-        if (result.tag === "Right") { return handleStep(result._1)(stream1)(stream2)(state)(StreamId2); }
-        $runtime.fail();
-      })
-    };
-  };
-  const handleStep = step => thisStream => otherStream => state => streamId => {
-    if (step.tag === "Done") {
-      if (step._1.tag === "Nothing") { return mergeNDImpl(thisStream)(otherStream)(streamId === "StreamId1" ? {...state, stream1Done: true} : {...state, stream2Done: true}).pull; }
-      if (step._1.tag === "Just") {
-        return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
-          "Loop",
-          Data$dTuple.$Tuple(
-            Data$dMaybe.$Maybe("Just", step._1._1),
-            mergeNDImpl(thisStream)(otherStream)(streamId === "StreamId1" ? {...state, stream1Done: true} : {...state, stream2Done: true})
-          )
-        ));
-      }
-      $runtime.fail();
-    }
-    if (step.tag === "Loop") {
-      const nextStream1 = streamId === "StreamId1" ? step._1._2 : thisStream;
-      const nextStream2 = streamId === "StreamId2" ? step._1._2 : otherStream;
-      if (step._1._1.tag === "Nothing") { return mergeNDImpl(nextStream1)(nextStream2)(state).pull; }
-      if (step._1._1.tag === "Just") {
-        return Yoga$dOm.applicativeOm.pure(Control$dMonad$dRec$dClass.$Step(
-          "Loop",
-          Data$dTuple.$Tuple(Data$dMaybe.$Maybe("Just", step._1._1._1), mergeNDImpl(nextStream1)(nextStream2)(state))
-        ));
-      }
-    }
-    $runtime.fail();
-  };
-  return mergeNDImpl(s1)(s2)({stream1Done: false, stream2Done: false});
-};
 const mergeAllND = streams => Data$dFoldable.foldlArray(mergeND)(empty)(streams);
 const rangeStrom = start => end => {
   const rangeHelper = current => limit => {
