@@ -162,4 +162,142 @@ main = launchAff_ do
         (Strom.rangeStrom 500001 1000001)
         # Strom.runDrain
 
+  -- Additional construction methods
+  benchAff "fromArray-1M" 10 do
+    runOm $
+      Strom.fromArray (Array.range 1 1000000)
+        # Strom.runDrain
+
+  benchAff "iterateStrom-10k" 10 do
+    runOm $
+      Strom.iterateStrom (_ + 1) 0
+        # Strom.runDrain
+
+  benchAff "repeatStrom-10k" 10 do
+    runOm $
+      Strom.repeatStrom 42
+        # Strom.runDrain
+
+  -- Transformations
+  benchAff "mapM-effect-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 50001
+        # Strom.mapMStrom (\n -> pure (n * 2))
+        # Strom.runDrain
+
+  benchAff "tap-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 50001
+        # Strom.tapStrom (\_ -> unit)
+        # Strom.runDrain
+
+  benchAff "collect-filter-map-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 50001
+        # Strom.collectStrom (\n -> if n `mod` 2 == 0 then Just (n * 2) else Nothing)
+        # Strom.runDrain
+
+  benchAff "changes-50k" 10 do
+    runOm $
+      Strom.fromArray (Array.replicate 50000 1 <> [2])
+        # Strom.changesStrom
+        # Strom.runDrain
+
+  -- Taking/Dropping
+  benchAff "takeWhile-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 1000001
+        # Strom.takeWhileStrom (_ < 50000)
+        # Strom.runDrain
+
+  benchAff "drop-5k-from-1M" 10 do
+    runOm $
+      Strom.rangeStrom 1 1000001
+        # Strom.dropStrom 5000
+        # Strom.runDrain
+
+  benchAff "dropWhile-half-1M" 10 do
+    runOm $
+      Strom.rangeStrom 1 1000001
+        # Strom.dropWhileStrom (_ < 500000)
+        # Strom.runDrain
+
+  -- Grouping
+  benchAff "grouped-chunks-of-100-from-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 50001
+        # Strom.groupedStrom 100
+        # Strom.runDrain
+
+  benchAff "partition-even-odd-50k" 10 do
+    runOm $ do
+      let Tuple evens odds = Strom.partition (\n -> n `mod` 2 == 0) (Strom.rangeStrom 1 50001)
+      Strom.appendStrom evens odds
+        # Strom.runDrain
+
+  -- Combining
+  benchAff "append-2x500k" 10 do
+    runOm $
+      Strom.appendStrom
+        (Strom.rangeStrom 1 500001)
+        (Strom.rangeStrom 500001 1000001)
+        # Strom.runDrain
+
+  benchAff "concat-10x10k" 10 do
+    runOm $
+      Strom.concatStrom (Array.replicate 10 (Strom.rangeStrom 1 10001))
+        # Strom.runDrain
+
+  benchAff "zipWith-add-2x500k" 10 do
+    runOm $
+      Strom.zipWithStrom (+)
+        (Strom.rangeStrom 1 500001)
+        (Strom.rangeStrom 1 500001)
+        # Strom.runDrain
+
+  benchAff "interleave-2x50k" 10 do
+    runOm $
+      Strom.interleave
+        (Strom.rangeStrom 1 50001)
+        (Strom.rangeStrom 50001 100001)
+        # Strom.runDrain
+
+  benchAff "merge-2x500k" 10 do
+    runOm $
+      Strom.merge
+        (Strom.rangeStrom 1 500001)
+        (Strom.rangeStrom 500001 1000001)
+        # Strom.runDrain
+
+  benchAff "mergeAll-10x10k" 10 do
+    runOm $
+      Strom.mergeAll (Array.replicate 10 (Strom.rangeStrom 1 10001))
+        # Strom.runDrain
+
+  benchAff "race-2x50k" 10 do
+    runOm $
+      Strom.race
+        (Strom.rangeStrom 1 50001)
+        (Strom.rangeStrom 50001 100001)
+        # Strom.runDrain
+
+  -- Parallel operations
+  benchAff "foreachPar-concurrency8-1k" 10 do
+    runOm $
+      Strom.rangeStrom 1 1001
+        # Strom.foreachPar 8 (\_ -> pure unit)
+
+  benchAff "mapMPar-concurrency8-1k" 10 do
+    runOm $
+      Strom.rangeStrom 1 1001
+        # Strom.mapMPar 8 (\n -> pure (n * 2))
+        # Strom.runDrain
+
+  -- Error handling
+  benchAff "catchAll-no-errors-50k" 10 do
+    runOm $
+      Strom.rangeStrom 1 50001
+        # Strom.catchAll (\_ -> Strom.succeed 0)
+        # Strom.runDrain
+
   liftEffect $ Console.log "\n✨ Benchmark suite complete!"
