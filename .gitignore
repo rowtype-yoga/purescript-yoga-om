@@ -2,6 +2,7 @@
 node_modules/
 .spago/
 output/
+output-*/
 
 # Build artifacts
 .psci_modules/
@@ -34,3 +35,10 @@ coverage/
 tmp/
 temp/
 .tmp/
+
+# Test scripts and results
+test-baseline.mjs
+test-batch-sizes.mjs
+test-warmed-up.mjs
+test-mergeND.mjs
+**/benchmark-results/*.txt
