@@ -3,7 +3,7 @@ workspace: {}
 package:
   name: yoga-om
   publish:
-    version: 1.0.8
+    version: 1.0.9
     license: MIT
     include:
       - "src/Yoga/Om.purs"
