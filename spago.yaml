@@ -3,11 +3,11 @@ workspace: {}
 package:
   name: yoga-om
   publish:
-    version: 1.0.7
+    version: 1.0.8
     license: MIT
-    exclude:
-      - "src/**/*.test.purs"
-      - "src/Test/**"
+    include:
+      - "src/Yoga/Om.purs"
+      - "src/Yoga/Om/Error.purs"
     location:
       githubOwner: rowtype-yoga
       githubRepo: purescript-yoga-om
