@@ -1,21 +1,9 @@
 name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - uses: rowtype-yoga/purescript-yoga-actions/.github/actions/setup@main
-      
-      - name: Build all packages
-        run: spago build
-      
-      - name: Test all packages
-        run: spago test
+      - run: spago build

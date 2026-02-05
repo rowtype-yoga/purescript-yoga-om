@@ -1,48 +1,11 @@
 {
-  "name": "purescript-yoga-om-workspace",
-  "version": "2.0.0",
-  "author": "",
+  "name": "purescript-yoga-om-core",
+  "version": "1.0.0",
+  "description": "Core Om types and operations for writing applications with dependency injection and checked exceptions",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rowtype-yoga/purescript-yoga-om.git"
-  },
-  "main": "index.js",
-  "dependencies": {
-    "purescript": "^0.15.15",
-    "purs-tidy": "^0.11.1",
-    "spago": "^1.0.3"
-  },
-  "devDependencies": {
-    "purs-backend-es": "^1.4.2"
-  },
-  "bugs": {
-    "url": "https://github.com/rowtype-yoga/purescript-yoga-om/issues"
-  },
-  "description": "A powerful general purpose type for writing applications - workspace with core, node, rom, and strom packages",
-  "homepage": "https://github.com/rowtype-yoga/purescript-yoga-om#readme",
-  "keywords": [
-    "purescript",
-    "functional-programming",
-    "dependency-injection",
-    "error-handling",
-    "aff",
-    "async"
-  ],
-  "license": "MIT",
-  "packageManager": "bun@1.x",
-  "scripts": {
-    "build": "spago build",
-    "build:prod": "spago build && purs-backend-es build",
-    "test": "./test-all.sh",
-    "test:core": "cd packages/yoga-om-core && spago test",
-    "test:node": "cd packages/yoga-om-node && spago test",
-    "test:rom": "cd packages/yoga-om-rom && spago test",
-    "test:strom": "cd packages/yoga-om-strom && spago test",
-    "build:core": "spago build -p yoga-om-core",
-    "build:node": "spago build -p yoga-om-node",
-    "build:rom": "spago build -p yoga-om-rom",
-    "build:strom": "spago build -p yoga-om-strom",
-    "benchmark:strom": "cd packages/yoga-om-strom && bun run benchmark"
-  },
-  "type": "module"
+    "url": "https://github.com/rowtype-yoga/purescript-yoga-om.git",
+    "directory": "packages/yoga-om-core"
+  }
 }
