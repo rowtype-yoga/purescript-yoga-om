@@ -3,6 +3,9 @@
 -- @inline export note arity=2
 -- @inline export fromAff arity=1
 -- @inline export runOm arity=2
+-- @inline export toOm arity=1
+-- @inline export onError arity=2
+-- @inline export mapError arity=2
 module Yoga.Om
   ( Om(..)
   , ParOm(..)
@@ -13,6 +16,8 @@ module Yoga.Om
   , expandErr
   , fromAff
   , handleErrors
+  , mapError
+  , onError
   , handleErrors'
   , launchOm
   , launchOm_
@@ -29,6 +34,8 @@ module Yoga.Om
   , throw
   , throwLeftAs
   , throwLeftAsM
+  , class ToOm
+  , toOm
   , unliftAff
   , unliftAffFn
   , widenCtx
@@ -52,6 +59,7 @@ import Data.Newtype (class Newtype)
 import Data.Time.Duration (class Duration, fromDuration)
 import Data.Tuple.Nested ((/\))
 import Data.Variant (class VariantMatchCases, Variant, case_, match, on, onMatch)
+import Data.Variant as Variant
 import Effect (Effect)
 import Effect.AVar (AVar)
 import Effect.Aff (Aff, Fiber, ParAff, forkAff, launchAff, supervise)
@@ -60,7 +68,9 @@ import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception (Error)
-import Prim.Row (class Nub, class Union)
+import Data.Symbol (class IsSymbol)
+import Prim.Row (class Cons, class Nub, class Union)
+import Type.Proxy (Proxy(..))
 import Prim.RowList (class RowToList, RowList)
 import Record (disjointUnion)
 import Record.Studio (class Keys, shrink)
@@ -218,6 +228,30 @@ handleErrors cases (Om om) = do
   err ← liftAff ((\(_ /\ v /\ _) → v) <$> (runRWSET ctx unit om))
   err # either (onMatch cases throwError) pure
 
+mapError
+  :: forall @from @to tyIn tyOut ctx errIn errMid errOut a
+   . IsSymbol from
+  => IsSymbol to
+  => Cons from tyIn (exception :: Error | errMid) (exception :: Error | errIn)
+  => Cons to tyOut (exception :: Error | errMid) (exception :: Error | errOut)
+  => (tyIn -> tyOut)
+  -> Om ctx errIn a
+  -> Om ctx errOut a
+mapError f = handleErrors' \variant ->
+  variant # on (Proxy :: Proxy from)
+    (throwError <<< Variant.inj (Proxy :: Proxy to) <<< f)
+    (throwError <<< unsafeCoerce)
+
+onError
+  :: forall @label ty ctx errIn errOut a
+   . IsSymbol label
+  => Cons label ty (exception :: Error | errOut) (exception :: Error | errIn)
+  => (ty -> Om ctx errOut a)
+  -> Om ctx errIn a
+  -> Om ctx errOut a
+onError handler = handleErrors' \variant ->
+  variant # on (Proxy :: Proxy label) handler throwError
+
 -- | When you have a function that can throw a subset of the errors of the ones
 -- | you could throw in a do block, `expand` allows to make them compatible
 
@@ -346,6 +380,16 @@ runOm ctx errorHandlers (Om app) = do
   runRWSET ctx unit app >>= case _ of
     (_ /\ Right r /\ _) → pure r
     (_ /\ Left err /\ _) → err # match errorHandlers
+
+class ToOm :: (Type -> Type) -> Constraint
+class ToOm f where
+  toOm :: forall ctx err a. f a -> Om ctx err a
+
+instance ToOm Effect where
+  toOm = liftEffect
+
+instance ToOm Aff where
+  toOm = liftAff
 
 -- | Manually add some fields to the context of a computation.
 -- | This function is useful when already inside a `do` block of an `Om`

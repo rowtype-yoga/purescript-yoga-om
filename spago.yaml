@@ -36,3 +36,12 @@ package:
     - uncurried-transformers: ">=1.0.0 <2.0.0"
     - unsafe-coerce: ">=6.0.0 <7.0.0"
     - variant: ">=8.0.0 <9.0.0"
+    - aff-retry: ">=2.0.0 <3.0.0"
+    - arrays: ">=7.0.0 <8.0.0"
+    - numbers: ">=9.0.0 <10.0.0"
+    - random: ">=6.0.0 <7.0.0"
+  test:
+    main: Test.Main
+    dependencies:
+      - spec: ">=7.0.0 <8.0.0"
+      - refs: ">=6.0.0 <7.0.0"
