@@ -8,7 +8,9 @@ import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Ref as Ref
 import Effect.Aff.Retry (RetryStatus(..), limitRetries, constantDelay)
+import Data.Either (Either(..))
 import Data.Time.Duration (Milliseconds(..))
+import Data.Variant (match)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -73,6 +75,47 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
       attempts <- Ref.read attemptsRef # liftEffect
       attempts `shouldEqual` 3
 
+    it "preserves the error when retries are exhausted" do
+      result <-
+        recovering (constantDelay (Milliseconds 0.0) <> limitRetries 2)
+          (\_ -> { networkError: \(_ :: String) -> pure true })
+          (\_ -> Om.throw { networkError: "server down" })
+          # Om.runReader {}
+          # liftAff
+      case result of
+        Left err -> do
+          let msg = err # match
+                { exception: \_ -> "exception"
+                , networkError: \e -> e
+                }
+          msg `shouldEqual` "server down"
+        Right _ -> "should have failed" `shouldEqual` "but succeeded"
+
+    it "only retries the specified error in a multi-error layer" do
+      attemptsRef <- Ref.new 0 # liftEffect
+      result <-
+        recovering (constantDelay (Milliseconds 0.0) <> limitRetries 5)
+          (\_ -> { networkError: \(_ :: String) -> pure true })
+          (\_ -> do
+            attempts <- Ref.modify (_ + 1) attemptsRef # liftEffect
+            if attempts <= 2
+              then Om.throw { networkError: "timeout" }
+              else Om.throw { authError: "forbidden" }
+          )
+          # Om.runReader {}
+          # liftAff
+      case result of
+        Left err -> do
+          let msg = err # match
+                { exception: \_ -> "exception"
+                , networkError: \e -> e
+                , authError: \e -> e
+                }
+          msg `shouldEqual` "forbidden"
+        Right _ -> "should have failed" `shouldEqual` "but succeeded"
+      attempts <- Ref.read attemptsRef # liftEffect
+      attempts `shouldEqual` 3
+
     it "uses RetryStatus to decide whether to retry" do
       statusesRef <- Ref.new [] # liftEffect
       recovering (constantDelay (Milliseconds 0.0) <> limitRetries 3)
@@ -109,7 +152,7 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
 
   describe "Yoga.Om.Retry - repeating" do
 
-    it "repeatings while condition holds" do
+    it "repeats while condition holds" do
       counterRef <- Ref.new 0 # liftEffect
       result <-
         repeating (constantDelay (Milliseconds 0.0) <> limitRetries 10)
