@@ -5,7 +5,7 @@ workspace:
 package:
   name: yoga-om
   publish:
-    version: 1.2.2
+    version: 1.3.0
     license: MIT
     exclude:
       - "src/**/*.test.purs"
@@ -37,9 +37,7 @@ package:
     - unsafe-coerce: ">=6.0.0 <7.0.0"
     - variant: ">=8.0.0 <9.0.0"
     - aff-retry: ">=2.0.0 <3.0.0"
-    - arrays: ">=7.0.0 <8.0.0"
-    - numbers: ">=9.0.0 <10.0.0"
-    - random: ">=6.0.0 <7.0.0"
+    - refs: ">=6.0.0 <7.0.0"
   test:
     main: Test.Main
     dependencies:
