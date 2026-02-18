@@ -1,11 +1,14 @@
 workspace:
   packageSet:
     registry: 51.1.0
+  extraPackages:
+    ref-lifted:
+      path: ../purescript-ref-lifted
 
 package:
   name: yoga-om
   publish:
-    version: 1.4.0
+    version: 1.5.0
     license: MIT
     exclude:
       - "src/**/*.test.purs"
@@ -37,6 +40,7 @@ package:
     - unsafe-coerce: ">=6.0.0 <7.0.0"
     - variant: ">=8.0.0 <9.0.0"
     - aff-retry: ">=2.0.0 <3.0.0"
+    - ref-lifted: ">=0.0.1 <1.0.0"
     - refs: ">=6.0.0 <7.0.0"
   test:
     main: Test.Main

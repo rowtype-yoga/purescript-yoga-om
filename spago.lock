@@ -54,6 +54,9 @@
               "record-studio": ">=1.0.0 <2.0.0"
             },
             {
+              "ref-lifted": ">=0.0.1 <1.0.0"
+            },
+            {
               "refs": ">=6.0.0 <7.0.0"
             },
             {
@@ -588,7 +591,11 @@
         "zipperarray": "2.0.0"
       }
     },
-    "extra_packages": {}
+    "extra_packages": {
+      "ref-lifted": {
+        "path": "../purescript-ref-lifted"
+      }
+    }
   },
   "packages": {
     "aff": {
@@ -1198,6 +1205,15 @@
         "record",
         "typelevel-prelude",
         "unsafe-coerce"
+      ]
+    },
+    "ref-lifted": {
+      "type": "local",
+      "path": "../purescript-ref-lifted",
+      "dependencies": [
+        "effect",
+        "prelude",
+        "refs"
       ]
     },
     "refs": {

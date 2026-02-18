@@ -28,9 +28,18 @@ module Yoga.Om
   , inParallel
   , readerT
   , runOm
+  , runOmEffect
+  , runOmRecord
+  , sequenceOmRecord
+  , runOms
+  , runOmsInOm
+  , ExpandAndRun(..)
+  , SequenceOm(..)
+  , CloseOmRows(..)
   , runReader
   , tap
   , tapM
+  , fatal
   , throw
   , throwLeftAs
   , throwLeftAsM
@@ -68,8 +77,9 @@ import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception (Error)
+import Effect.Exception as Exn
 import Data.Symbol (class IsSymbol)
-import Prim.Row (class Cons, class Nub, class Union)
+import Prim.Row (class Cons, class Lacks, class Nub, class Union)
 import Type.Proxy (Proxy(..))
 import Prim.RowList (class RowToList, RowList)
 import Record (disjointUnion)
@@ -77,9 +87,10 @@ import Record.Studio (class Keys, shrink)
 import Uncurried.RWSET (RWSET, hoistRWSET, runRWSET, rwseT, withRWSET)
 import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Om.Error (Exception, OneOfTheseErrors, exception, getParallelError, newParallelError, parallelErrorToError, toParallelError, class SingletonVariantRecord, singletonRecordToVariant)
-
--- | A generic type for handling computations
--- | It combines asynchronous side-effecting computations with `Aff`,
+import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
+import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
+import Record.Builder (Builder)
+import Record.Builder as Builder
 -- | "dependency injection" via `ReaderT` which tracks a context, and
 -- | checked exceptions and early return with `ExceptV`.
 newtype Om ctx err a = Om
@@ -116,6 +127,9 @@ throw
   ⇒ Record err
   → m a
 throw = throwError <<< error
+
+fatal ∷ ∀ ctx err a. String → Om ctx err a
+fatal msg = throw { exception: Exn.error msg }
 
 error
   ∷ ∀ err errors
@@ -380,6 +394,121 @@ runOm ctx errorHandlers (Om app) = do
   runRWSET ctx unit app >>= case _ of
     (_ /\ Right r /\ _) → pure r
     (_ /\ Left err /\ _) → err # match errorHandlers
+
+runOmEffect
+  ∷ ∀ ctx a
+  . ctx
+  → Om ctx () a
+  → Effect a
+runOmEffect ctx (Om app) = do
+  runRWSET ctx unit (hoistRWSET unsafeCoerce app) >>= case _ of
+    (_ /\ Right r /\ _) → pure r
+    (_ /\ Left err /\ _) → err # match { exception: \e → liftEffect (throwError e) }
+
+-- | Run a record of `Om` actions and return the results as a record.
+-- | Each field can be an `Om` with open context/error rows — they are
+-- | automatically expanded to the target context and error types.
+-- | ```purescript
+-- | runOmRecord ctx handlers
+-- |   { hello: Om.query @Queries @"hello" <#> _.hello
+-- |   , users: Om.query @Queries @"users { name age }" <#> _.users
+-- |   }
+-- | ```
+runOmRecord
+  :: forall ctxRow r rl err_ err rin closed rout
+   . RowToList (exception :: Error -> Aff { | rout } | r) rl
+  => VariantMatchCases rl err_ (Aff { | rout })
+  => Union err_ () (exception :: Error | err)
+  => HMap CloseOmRows { | rin } { | closed }
+  => HFoldlWithIndex (SequenceOm ctxRow err) (Om { | ctxRow } err (Builder {} {})) { | closed } (Om { | ctxRow } err (Builder {} { | rout }))
+  => { | ctxRow }
+  -> { exception :: Error -> Aff { | rout } | r }
+  -> { | rin }
+  -> Aff { | rout }
+runOmRecord ctx handleErrs actions = do
+  let closed = hmap CloseOmRows actions
+  runOm ctx handleErrs (map (flip Builder.build {}) (hfoldlWithIndex (SequenceOm :: SequenceOm ctxRow err) (pure identity :: Om { | ctxRow } err (Builder {} {})) closed))
+
+sequenceOmRecord
+  :: forall ctxRow err rin closed rout
+   . HMap CloseOmRows { | rin } { | closed }
+  => HFoldlWithIndex (SequenceOm ctxRow err) (Om { | ctxRow } err (Builder {} {})) { | closed } (Om { | ctxRow } err (Builder {} { | rout }))
+  => { | rin }
+  -> Om { | ctxRow } err { | rout }
+sequenceOmRecord actions = do
+  let closed = hmap CloseOmRows actions
+  map (flip Builder.build {}) (hfoldlWithIndex (SequenceOm :: SequenceOm ctxRow err) (pure identity :: Om { | ctxRow } err (Builder {} {})) closed)
+
+runOms
+  :: forall ctxRow r rl err_ err rin closed rout
+   . RowToList (exception :: Error -> Aff Unit | r) rl
+  => VariantMatchCases rl err_ (Aff Unit)
+  => Union err_ () (exception :: Error | err)
+  => HMap CloseOmRows { | rin } { | closed }
+  => HMap (ExpandAndRun ctxRow err) { | closed } { | rout }
+  => { | ctxRow }
+  -> { exception :: Error -> Aff Unit | r }
+  -> { | rin }
+  -> { | rout }
+runOms ctx handleErrs actions = do
+  let closed = hmap CloseOmRows actions
+  let handleErr = match handleErrs
+  hmap (ExpandAndRun ctx handleErr :: ExpandAndRun ctxRow err) closed
+
+runOmsInOm
+  :: forall ctxRow r rl err_ err outerErr rin closed rout
+   . RowToList (exception :: Error -> Aff Unit | r) rl
+  => VariantMatchCases rl err_ (Aff Unit)
+  => Union err_ () (exception :: Error | err)
+  => HMap CloseOmRows { | rin } { | closed }
+  => HMap (ExpandAndRun ctxRow err) { | closed } { | rout }
+  => { exception :: Error -> Aff Unit | r }
+  -> { | rin }
+  -> Om { | ctxRow } outerErr { | rout }
+runOmsInOm handleErrs actions = do
+  ctx <- ask
+  pure (runOms ctx handleErrs actions)
+
+data ExpandAndRun (ctxRow :: Row Type) (err :: Row Type) = ExpandAndRun { | ctxRow } (Variant (exception :: Error | err) -> Aff Unit)
+
+instance
+  ( RowToList ctx ctxRL
+  , RowToList err errRL
+  , Union ctx _c ctxRow
+  , Keys ctx
+  , Union err _e errRow
+  ) =>
+  Mapping (ExpandAndRun ctxRow errRow) (Om { | ctx } err a) (Aff a) where
+  mapping (ExpandAndRun ctx handleErr) om = do
+    let Om app = expand om :: Om { | ctxRow } errRow a
+    runRWSET ctx unit app >>= case _ of
+      (_ /\ Right r /\ _) -> pure r
+      (_ /\ Left err /\ _) -> unsafeCoerce (handleErr err)
+
+data SequenceOm (ctxRow :: Row Type) (err :: Row Type) = SequenceOm
+
+instance
+  ( IsSymbol sym
+  , Cons sym a rb rc
+  , Lacks sym rb
+  , RowToList cSmall _cRL
+  , RowToList eSmall _eRL
+  , Union cSmall _c ctxRow
+  , Keys cSmall
+  , Union eSmall _e err
+  ) =>
+  FoldingWithIndex (SequenceOm ctxRow err) (Proxy sym) (Om { | ctxRow } err (Builder { | ra } { | rb })) (Om { | cSmall } eSmall a) (Om { | ctxRow } err (Builder { | ra } { | rc })) where
+  foldingWithIndex _ prop acc om = (>>>) <$> acc <*> (Builder.insert prop <$> expand om)
+
+-- Close open row tails so Union can solve in SequenceOm
+data CloseOmRows = CloseOmRows
+
+instance
+  ( RowToList ctx ctxRL
+  , RowToList err errRL
+  ) =>
+  Mapping CloseOmRows (Om { | ctx } err a) (Om { | ctx } err a) where
+  mapping _ = identity
 
 class ToOm :: (Type -> Type) -> Constraint
 class ToOm f where
