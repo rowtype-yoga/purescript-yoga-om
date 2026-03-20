@@ -2,7 +2,7 @@ workspace: {}
 package:
   name: yoga-om
   publish:
-    version: 1.5.2
+    version: 2.0.0
     license: MIT
     exclude:
       - "src/**/*.test.purs"
