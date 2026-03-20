@@ -28,7 +28,7 @@ module Yoga.Om
   , inParallel
   , readerT
   , runOm
-  , runOmRethrowingExceptions
+  , runOmThrowing
   , runOmRecord
   , sequenceOmRecord
   , runOms
@@ -398,12 +398,12 @@ runOm ctx errorHandlers (Om app) = do
 -- | Historical helper for running an error-free `Om`.
 -- | Despite the name, this returns `Aff` because `Om` computations may contain
 -- | asynchronous effects internally, and there is no sound synchronous runner.
-runOmRethrowingExceptions
+runOmThrowing
   ∷ ∀ ctx a
   . ctx
   → Om ctx () a
   → Aff a
-runOmRethrowingExceptions ctx = runOm ctx { exception: throwError }
+runOmThrowing ctx = runOm ctx { exception: throwError }
 
 -- | Run a record of `Om` actions and return the results as a record.
 -- | Each field can be an `Om` with open context/error rows — they are
