@@ -28,7 +28,7 @@ module Yoga.Om
   , inParallel
   , readerT
   , runOm
-  , runOmEffect
+  , runOmOrThrow
   , runOmRecord
   , sequenceOmRecord
   , runOms
@@ -395,15 +395,15 @@ runOm ctx errorHandlers (Om app) = do
     (_ /\ Right r /\ _) → pure r
     (_ /\ Left err /\ _) → err # match errorHandlers
 
-runOmEffect
+-- | Historical helper for running an error-free `Om`.
+-- | Despite the name, this returns `Aff` because `Om` computations may contain
+-- | asynchronous effects internally, and there is no sound synchronous runner.
+runOmOrThrow
   ∷ ∀ ctx a
   . ctx
   → Om ctx () a
-  → Effect a
-runOmEffect ctx (Om app) = do
-  runRWSET ctx unit (hoistRWSET unsafeCoerce app) >>= case _ of
-    (_ /\ Right r /\ _) → pure r
-    (_ /\ Left err /\ _) → err # match { exception: \e → liftEffect (throwError e) }
+  → Aff a
+runOmOrThrow ctx = runOm ctx { exception: throwError }
 
 -- | Run a record of `Om` actions and return the results as a record.
 -- | Each field can be an `Om` with open context/error rows — they are

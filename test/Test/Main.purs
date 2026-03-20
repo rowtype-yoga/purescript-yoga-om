@@ -57,6 +57,21 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
         # liftAff
       result `shouldEqual` 1
 
+    it "runOmOrThrow runs Aff-backed Om safely" do
+      result <- Om.runOmOrThrow {} do
+        Om.delay (Milliseconds 0.0)
+        pure 42
+      result `shouldEqual` 42
+
+    it "runOmOrThrow still runs lifted Effect code" do
+      ref <- Ref.new 0 # liftEffect
+      result <- Om.runOmOrThrow {} do
+        liftEffect $ Ref.modify_ (_ + 1) ref
+        pure 7
+      result `shouldEqual` 7
+      final <- Ref.read ref # liftEffect
+      final `shouldEqual` 1
+
   describe "Yoga.Om - exception safety" do
 
     it "fatal throws a string into the exception channel" do
