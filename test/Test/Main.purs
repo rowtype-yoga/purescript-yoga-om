@@ -72,11 +72,6 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
       final <- Ref.read ref # liftEffect
       final `shouldEqual` 1
 
-    it "runOmEffect remains an alias" do
-      result <- Om.runOmEffect {} do
-        pure 99
-      result `shouldEqual` 99
-
   describe "Yoga.Om - exception safety" do
 
     it "fatal throws a string into the exception channel" do

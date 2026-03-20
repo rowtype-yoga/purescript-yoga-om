@@ -28,7 +28,6 @@ module Yoga.Om
   , inParallel
   , readerT
   , runOm
-  , runOmEffect
   , runOmRethrowingExceptions
   , runOmRecord
   , sequenceOmRecord
@@ -405,14 +404,6 @@ runOmRethrowingExceptions
   → Om ctx () a
   → Aff a
 runOmRethrowingExceptions ctx = runOm ctx { exception: throwError }
-
--- | Historical alias for `runOmRethrowingExceptions`.
-runOmEffect
-  ∷ ∀ ctx a
-  . ctx
-  → Om ctx () a
-  → Aff a
-runOmEffect = runOmRethrowingExceptions
 
 -- | Run a record of `Om` actions and return the results as a record.
 -- | Each field can be an `Om` with open context/error rows — they are
