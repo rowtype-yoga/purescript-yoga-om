@@ -57,15 +57,15 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
         # liftAff
       result `shouldEqual` 1
 
-    it "runOmThrowing runs Aff-backed Om safely" do
-      result <- Om.runOmThrowing {} do
+    it "runOmOrThrow runs Aff-backed Om safely" do
+      result <- Om.runOmOrThrow {} do
         Om.delay (Milliseconds 0.0)
         pure 42
       result `shouldEqual` 42
 
-    it "runOmThrowing still runs lifted Effect code" do
+    it "runOmOrThrow still runs lifted Effect code" do
       ref <- Ref.new 0 # liftEffect
-      result <- Om.runOmThrowing {} do
+      result <- Om.runOmOrThrow {} do
         liftEffect $ Ref.modify_ (_ + 1) ref
         pure 7
       result `shouldEqual` 7
