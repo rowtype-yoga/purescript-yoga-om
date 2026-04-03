@@ -138,14 +138,14 @@ error
   -> OneOfTheseErrors errors
 error = singletonRecordToVariant
 
--- | Run multiple `Om` computations in parallel, and return the fastest
+-- | Run multiple computations in parallel, and return the fastest
 -- | To collect all results, use `inParallel` instead
-race :: forall ctx e a. Array (Om ctx e a) -> Om ctx e a
+race :: forall f m a. Parallel f m => Alternative f => Array (m a) -> m a
 race = parOneOf
 
--- | Run multiple `Om`s in parallel, and collect all results
+-- | Run multiple computations in parallel, and collect all results
 -- | To only take the fastest result, use `race`
-inParallel :: forall ctx e a. Array (Om ctx e a) -> Om ctx e (Array a)
+inParallel :: forall f m a. Parallel f m => Applicative f => Array (m a) -> m (Array a)
 inParallel = parSequence
 
 delay :: forall m d. MonadAff m => Duration d => d -> m Unit
