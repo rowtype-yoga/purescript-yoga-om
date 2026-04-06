@@ -23,6 +23,7 @@ module Yoga.Om
   , launchOm_
   , note
   , noteM
+  , orFail
   , parOmToAff
   , race
   , inParallel
@@ -91,6 +92,7 @@ import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfo
 import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Record.Builder (Builder)
 import Record.Builder as Builder
+
 -- | "dependency injection" via `ReaderT` which tracks a context, and
 -- | checked exceptions and early return with `ExceptV`.
 newtype Om ctx err a = Om
@@ -187,6 +189,9 @@ note err = maybe (throw err) pure
 
 noteM ∷ ∀ err m a. MonadThrow err m ⇒ m err → Maybe a → m a
 noteM err = maybe (throwError =<< err) pure
+
+orFail ∷ ∀ m a. Monad m ⇒ m a → Maybe a → m a
+orFail err = maybe err pure
 
 -- | Turns a `Left a` into an exception which reduces nesting
 throwLeftAs
