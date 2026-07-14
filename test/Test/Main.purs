@@ -246,6 +246,36 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
         # liftAff
       result `shouldEqual` 99
 
+    it "throwWhen throws only when its condition is true" do
+      let
+        run condition = do
+          Om.throwWhen { rejected: "blocked" } condition
+          pure "continued"
+        handle =
+          Om.runOm {}
+            { exception: \_ -> pure "exception"
+            , rejected: pure
+            }
+      whenTrue <- run true # handle # liftAff
+      whenFalse <- run false # handle # liftAff
+      whenTrue `shouldEqual` "blocked"
+      whenFalse `shouldEqual` "continued"
+
+    it "throwUnless throws only when its condition is false" do
+      let
+        run condition = do
+          Om.throwUnless { rejected: "blocked" } condition
+          pure "continued"
+        handle =
+          Om.runOm {}
+            { exception: \_ -> pure "exception"
+            , rejected: pure
+            }
+      whenTrue <- run true # handle # liftAff
+      whenFalse <- run false # handle # liftAff
+      whenTrue `shouldEqual` "continued"
+      whenFalse `shouldEqual` "blocked"
+
     it "throwLeftAs converts Left to error" do
       result <- Left "bad" # Om.throwLeftAs (\badError -> Om.error { badError })
         # runExampleOm

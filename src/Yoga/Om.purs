@@ -42,6 +42,8 @@ module Yoga.Om
   , tapM
   , fatal
   , throw
+  , throwUnless
+  , throwWhen
   , throwLeftAs
   , throwLeftAsM
   , class ToOm
@@ -129,6 +131,26 @@ throw
   ⇒ Record err
   → m a
 throw = throwError <<< error
+
+-- | Throw the supplied typed error when the condition is true.
+throwWhen
+  ∷ ∀ m err errors
+  . SingletonVariantRecord err errors
+  ⇒ MonadThrow (OneOfTheseErrors errors) m
+  ⇒ Record err
+  → Boolean
+  → m Unit
+throwWhen problem condition = when condition (throw problem)
+
+-- | Throw the supplied typed error when the condition is false.
+throwUnless
+  ∷ ∀ m err errors
+  . SingletonVariantRecord err errors
+  ⇒ MonadThrow (OneOfTheseErrors errors) m
+  ⇒ Record err
+  → Boolean
+  → m Unit
+throwUnless problem condition = unless condition (throw problem)
 
 fatal ∷ ∀ ctx err a. String → Om ctx err a
 fatal msg = throw { exception: Exn.error msg }
